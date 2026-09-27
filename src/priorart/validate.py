@@ -1,12 +1,11 @@
-"""Cross-file checks that the note schema cannot express on its own."""
+"""Cross-file checks that a single note schema cannot express."""
 
 from pathlib import Path
-
-from pydantic import ValidationError
+from typing import assert_never
 
 from priorart.constants import MIN_REAL_SOURCES
-from priorart.load import LoadedNote, format_validation_error, load_note, note_paths
-from priorart.models import Source
+from priorart.load import LoadedNote, knowledge_dirs, load_tree, note_paths
+from priorart.models import DomainGuide, FixNote, Source
 
 
 def repo_root_from(start: Path | None = None) -> Path:
@@ -22,7 +21,7 @@ def repo_root_from(start: Path | None = None) -> Path:
             if candidate in seen:
                 continue
             seen.add(candidate)
-            if (candidate / "content" / "notes").is_dir() and (
+            if (candidate / "knowledge" / "domains").is_dir() and (
                 candidate / "pyproject.toml"
             ).is_file():
                 return candidate
@@ -51,6 +50,26 @@ def cross_file_errors(loaded: LoadedNote) -> list[str]:
         )
     if note.example and "example only" not in loaded.body.casefold():
         errors.append(f"{where}: example notes must include an 'Example only' banner in the body")
+    match note:
+        case DomainGuide():
+            if note.sources_count != len(loaded.pack.references):
+                errors.append(
+                    f"{where}: sources_count is {note.sources_count} "
+                    f"but the pack has {len(loaded.pack.references)} references"
+                )
+        case FixNote():
+            errors.extend(_cited_source_errors(loaded))
+        case _ as other:
+            assert_never(other)
+    return errors
+
+
+def _cited_source_errors(loaded: LoadedNote) -> list[str]:
+    note = loaded.note
+    if not isinstance(note, FixNote):
+        return []
+    where = loaded.path.as_posix()
+    errors: list[str] = []
     by_url = {item.url: item for item in loaded.pack.references}
     for source in note.sources:
         packed = by_url.get(source.url)
@@ -69,35 +88,65 @@ def cross_file_errors(loaded: LoadedNote) -> list[str]:
     return errors
 
 
-def validate_repository(root: Path) -> list[str]:
-    notes_dir = root / "content" / "notes"
-    sources_dir = root / "content" / "sources"
-    if not notes_dir.is_dir():
-        return ["content/notes is missing"]
+def link_errors(notes: list[LoadedNote], root: Path) -> list[str]:
+    """Domain ids on fixes, and fix ids on domain guides, must exist and agree."""
+    domains = {item.note.id: item for item in notes if isinstance(item.note, DomainGuide)}
+    fixes = {item.note.id: item for item in notes if isinstance(item.note, FixNote)}
     errors: list[str] = []
-    seen_ids: set[str] = set()
-    for path in note_paths(notes_dir):
-        label = relative(path, root)
-        try:
-            loaded = load_note(path, sources_dir)
-        except FileNotFoundError:
-            errors.append(f"{label}: missing source pack content/sources/{path.stem}.json")
+    for item in notes:
+        where = relative(item.path, root)
+        match item.note:
+            case FixNote() as fix:
+                for domain_id in fix.domains:
+                    guide = domains.get(domain_id)
+                    if guide is None:
+                        errors.append(f"{where}: domains link does not resolve: {domain_id}")
+                        continue
+                    linked = guide.note
+                    if isinstance(linked, DomainGuide) and fix.id not in linked.related_fixes:
+                        errors.append(
+                            f"{where}: domain {domain_id} does not list this fix in related_fixes"
+                        )
+            case DomainGuide() as guide:
+                for fix_id in guide.related_fixes:
+                    linked = fixes.get(fix_id)
+                    if linked is None:
+                        errors.append(f"{where}: related_fixes link does not resolve: {fix_id}")
+                        continue
+                    fix = linked.note
+                    if isinstance(fix, FixNote) and guide.id not in fix.domains:
+                        errors.append(f"{where}: fix {fix_id} does not list this domain in domains")
+            case _ as other:
+                assert_never(other)
+    return errors
+
+
+def validate_repository(root: Path) -> list[str]:
+    loaded, errors = load_tree(root)
+    seen: set[str] = set()
+    for item in loaded:
+        label = relative(item.path, root)
+        if item.note.id in seen:
+            errors.append(f"{label}: duplicate id {item.note.id}")
+        seen.add(item.note.id)
+        errors.extend(_relative_errors(item, root))
+    errors.extend(link_errors(loaded, root))
+    errors.extend(_orphan_packs(root, loaded))
+    return errors
+
+
+def _orphan_packs(root: Path, loaded: list[LoadedNote]) -> list[str]:
+    stems = {item.path.stem for item in loaded}
+    errors: list[str] = []
+    for _kind, (_notes_dir, sources_dir) in knowledge_dirs(root).items():
+        if not sources_dir.is_dir():
             continue
-        except ValidationError as exc:
-            errors.extend(f"{label}: {line}" for line in format_validation_error(exc))
-            continue
-        except (ValueError, OSError, UnicodeError) as exc:
-            errors.append(f"{label}: {exc}")
-            continue
-        if loaded.note.id in seen_ids:
-            errors.append(f"{label}: duplicate id {loaded.note.id}")
-        seen_ids.add(loaded.note.id)
-        errors.extend(_relative_errors(loaded, root))
-    if sources_dir.is_dir():
         for pack_path in sorted(sources_dir.glob("*.json")):
             if pack_path.name.startswith("_"):
                 continue
-            if pack_path.stem not in {path.stem for path in note_paths(notes_dir)}:
+            if pack_path.stem not in stems and pack_path.stem not in {
+                path.stem for path in note_paths(_notes_dir)
+            }:
                 errors.append(f"{relative(pack_path, root)}: no matching note")
     return errors
 

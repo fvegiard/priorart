@@ -2,7 +2,7 @@ from pathlib import Path
 
 from helpers import write_note
 from priorart.embed import HashEmbedder
-from priorart.models import SearchIndex
+from priorart.models import NoteKind, SearchIndex
 from priorart.query import search_index
 from priorart.store import build_local_knowledge, write_index
 
@@ -32,9 +32,7 @@ def _library(tmp_path: Path):
         tag="printing",
         platform="linux",
     )
-    return build_local_knowledge(
-        tmp_path / "content" / "notes", HashEmbedder(), include_examples=False
-    )
+    return build_local_knowledge(tmp_path / "knowledge", HashEmbedder(), include_examples=False)
 
 
 def test_hybrid_search_ranks_the_matching_note(tmp_path: Path) -> None:
@@ -48,7 +46,9 @@ def test_hybrid_search_ranks_the_matching_note(tmp_path: Path) -> None:
     )
     assert response.retrieval == "hybrid"
     assert response.results[0].id == "debugger-map"
+    assert response.results[0].note_type is NoteKind.FIX
     assert response.results[0].recipe[0].code
+    assert response.results[0].rollback
     assert response.results[0].sources
 
 
@@ -74,8 +74,32 @@ def test_tag_and_platform_filters(tmp_path: Path) -> None:
     assert [hit.id for hit in platform.results] == ["printer-spooler"]
 
 
+def test_note_type_filter_keeps_one_kind(tmp_path: Path) -> None:
+    knowledge = _library(tmp_path)
+    guides = search_index(
+        knowledge.index,
+        "fixture domain",
+        embedder=knowledge.embedder(),
+        top_k=5,
+        note_type=NoteKind.DOMAIN_GUIDE,
+        origin="local",
+    )
+    assert guides.results
+    assert {hit.note_type for hit in guides.results} == {NoteKind.DOMAIN_GUIDE}
+    fixes = search_index(
+        knowledge.index,
+        "sourceFileMap",
+        embedder=knowledge.embedder(),
+        top_k=5,
+        note_type=NoteKind.FIX,
+        origin="local",
+    )
+    assert fixes.results[0].id == "debugger-map"
+    assert {hit.note_type for hit in fixes.results} == {NoteKind.FIX}
+
+
 def test_sample_is_searchable_only_when_requested() -> None:
-    notes = ROOT / "content" / "notes"
+    notes = ROOT / "knowledge"
     hidden = build_local_knowledge(notes, HashEmbedder(), include_examples=False)
     assert hidden.index.notes == []
     shown = build_local_knowledge(notes, HashEmbedder(), include_examples=True)
@@ -97,5 +121,5 @@ def test_index_round_trip(tmp_path: Path) -> None:
     payload = (tmp_path / "dist" / "priorart-index.json").read_text(encoding="utf-8")
     restored = SearchIndex.model_validate_json(payload)
     assert restored.model == "hash-bow"
-    assert manifest.note_count == 2
-    assert manifest.note_ids == ["debugger-map", "printer-spooler"]
+    assert manifest.note_count == 3
+    assert manifest.note_ids == ["debugger-map", "fixture-domain", "printer-spooler"]

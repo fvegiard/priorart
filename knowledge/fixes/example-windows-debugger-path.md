@@ -1,11 +1,16 @@
 ---
 id: example-windows-debugger-path
+type: fix
 title: Map a debugger source path without a personal profile directory
 problem_summary: >
   A native debugger opens sources using absolute paths recorded on the machine
   that built the binary. Those paths miss on another checkout, and hardcoding a
   Windows profile directory would publish a personal username. Map the foreign
   root onto this workspace and pass paths through environment variables.
+root_cause: >
+  The binary stores the build machine's absolute source root. cppdbg and the
+  Windows debugger then look for files at that root instead of the checkout
+  that is open now. A literal profile path would also leak an account name.
 tags:
   - debugger
   - vscode
@@ -15,6 +20,8 @@ platforms:
     versions: ["10", "11"]
   - name: wsl
     versions: ["2"]
+domains:
+  - example-windows-debugger
 recipe:
   - name: Map the foreign source root in launch.json
     detail: >
@@ -54,6 +61,14 @@ verification:
     language: powershell
     code: |
       Test-Path $env:_NT_SOURCE_PATH
+rollback:
+  - name: Remove the source map
+    detail: >
+      Delete the sourceFileMap entry and clear _NT_SOURCE_PATH so the debugger
+      returns to its previous lookup behavior.
+    language: powershell
+    code: |
+      Remove-Item Env:_NT_SOURCE_PATH -ErrorAction SilentlyContinue
 sources:
   - url: https://example.com/priorart/example/official/source-file-map
     title: Example official note on debugger source maps

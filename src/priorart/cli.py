@@ -17,12 +17,17 @@ from priorart.maintain import (
     load_real_notes,
     plan_refresh,
 )
-from priorart.models import Note, SourcePack
+from priorart.models import DomainGuide, FixNote, NoteKind, SourcePack
 from priorart.privacy import scan_path
 from priorart.query import search_index
 from priorart.server import serve
 from priorart.sitegen import build_site
-from priorart.store import build_local_knowledge, load_knowledge, notes_dir_from_env, write_index
+from priorart.store import (
+    build_local_knowledge,
+    knowledge_dir_from_env,
+    load_knowledge,
+    write_index,
+)
 from priorart.validate import repo_root_from, validate_repository
 
 
@@ -37,17 +42,18 @@ def _parser() -> argparse.ArgumentParser:
     index.add_argument("--output", default=f"dist/{INDEX_FILENAME}")
     index.add_argument("--embedder", choices=("fastembed", "hash"), default="fastembed")
     index.add_argument("--include-examples", action="store_true")
-    index.add_argument("--notes-dir")
+    index.add_argument("--knowledge-dir")
 
-    search = sub.add_parser("search", help="Search notes")
+    search = sub.add_parser("search", help="Search domain guides and fix recipes")
     search.add_argument("query")
     search.add_argument("--top-k", type=int, default=5)
     search.add_argument("--tag")
     search.add_argument("--platform")
+    search.add_argument("--type", choices=("domain-guide", "fix", "all"), default="all")
     search.add_argument("--source", choices=("local", "remote", "auto"), default="local")
     search.add_argument("--embedder", choices=("fastembed", "hash"), default="fastembed")
     search.add_argument("--include-examples", action="store_true")
-    search.add_argument("--notes-dir")
+    search.add_argument("--knowledge-dir")
     search.add_argument("--json", action="store_true")
     search.add_argument("--expect-id", help="Exit 1 unless this note id is the top hit")
 
@@ -58,11 +64,11 @@ def _parser() -> argparse.ArgumentParser:
 
     due = sub.add_parser("due", help="Print real notes whose refresh is due")
     due.add_argument("--as-of")
-    due.add_argument("--notes-dir")
+    due.add_argument("--knowledge-dir")
 
     refresh = sub.add_parser("refresh-issues", help="Plan or apply monthly refresh issues")
     refresh.add_argument("--as-of")
-    refresh.add_argument("--notes-dir")
+    refresh.add_argument("--knowledge-dir")
     refresh.add_argument("--apply", action="store_true")
 
     labels = sub.add_parser("sync-labels", help="Show or apply .github/labels.yml")
@@ -76,10 +82,16 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _notes_dir(value: str | None) -> Path:
+def _knowledge_dir(value: str | None) -> Path:
     if value:
         return Path(value)
-    return notes_dir_from_env()
+    return knowledge_dir_from_env()
+
+
+def _note_type(value: str) -> NoteKind | None:
+    if value == "all":
+        return None
+    return NoteKind(value)
 
 
 def _as_of(value: str | None) -> date:
@@ -94,7 +106,7 @@ def cmd_validate() -> int:
     if errors:
         print("\n".join(errors), file=sys.stderr)
         return 1
-    print(f"Validated notes in {root / 'content' / 'notes'}")
+    print(f"Validated notes in {root / 'knowledge'}")
     return 0
 
 
@@ -108,8 +120,8 @@ def cmd_privacy() -> int:
     return 0
 
 
-def cmd_index(output: str, embedder: str, include_examples: bool, notes_dir: str | None) -> int:
-    directory = _notes_dir(notes_dir)
+def cmd_index(output: str, embedder: str, include_examples: bool, knowledge_dir: str | None) -> int:
+    directory = _knowledge_dir(knowledge_dir)
     knowledge = build_local_knowledge(
         directory,
         embedder_by_kind(embedder),
@@ -125,10 +137,10 @@ def cmd_index(output: str, embedder: str, include_examples: bool, notes_dir: str
 
 
 def cmd_search(namespace: argparse.Namespace) -> int:
-    directory = Path(namespace.notes_dir) if namespace.notes_dir else None
+    directory = Path(namespace.knowledge_dir) if namespace.knowledge_dir else None
     knowledge = load_knowledge(
         source=namespace.source,
-        notes_dir=directory,
+        knowledge_dir=directory,
         include_examples=namespace.include_examples,
         embedder_kind=namespace.embedder,
     )
@@ -139,6 +151,7 @@ def cmd_search(namespace: argparse.Namespace) -> int:
         top_k=namespace.top_k,
         tag=namespace.tag,
         platform=namespace.platform,
+        note_type=_note_type(namespace.type),
         origin=knowledge.origin,
     )
     if namespace.json:
@@ -151,7 +164,7 @@ def cmd_search(namespace: argparse.Namespace) -> int:
         if not response.results:
             print("no matches")
         for rank, hit in enumerate(response.results, start=1):
-            print(f"{rank}. {hit.id}  score={hit.score}")
+            print(f"{rank}. [{hit.note_type.value}] {hit.id}  score={hit.score}")
             print(f"   {hit.title}")
     if namespace.expect_id:
         top = response.results[0].id if response.results else ""
@@ -161,12 +174,13 @@ def cmd_search(namespace: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_due(as_of: str | None, notes_dir: str | None) -> int:
+def cmd_due(as_of: str | None, knowledge_dir: str | None) -> int:
     day = _as_of(as_of)
-    notes = load_real_notes(_notes_dir(notes_dir))
+    notes = load_real_notes(_knowledge_dir(knowledge_dir))
     payload = [
         {
             "id": note.id,
+            "type": note.kind.value,
             "title": note.title,
             "last_refreshed": note.last_refreshed.isoformat(),
             "refresh_due": note.refresh_due.isoformat(),
@@ -178,9 +192,9 @@ def cmd_due(as_of: str | None, notes_dir: str | None) -> int:
     return 0
 
 
-def cmd_refresh(as_of: str | None, notes_dir: str | None, apply: bool) -> int:
+def cmd_refresh(as_of: str | None, knowledge_dir: str | None, apply: bool) -> int:
     day = _as_of(as_of)
-    notes = load_real_notes(_notes_dir(notes_dir))
+    notes = load_real_notes(_knowledge_dir(knowledge_dir))
     issues = fetch_open_refresh_issues() if apply else []
     actions = plan_refresh(notes, issues, day)
     print(json.dumps([action.model_dump() for action in actions], indent=2))
@@ -209,7 +223,8 @@ def cmd_export_schema(output: str) -> int:
     destination = Path(output)
     destination.mkdir(parents=True, exist_ok=True)
     documents = {
-        "note.schema.json": Note.model_json_schema(),
+        "domain-guide.schema.json": DomainGuide.model_json_schema(),
+        "fix.schema.json": FixNote.model_json_schema(),
         "source-pack.schema.json": SourcePack.model_json_schema(),
     }
     for name, document in documents.items():
@@ -236,7 +251,7 @@ def main(argv: list[str] | None = None) -> int:
             namespace.output,
             namespace.embedder,
             namespace.include_examples,
-            namespace.notes_dir,
+            namespace.knowledge_dir,
         )
     if command == "search":
         return cmd_search(namespace)
@@ -244,9 +259,9 @@ def main(argv: list[str] | None = None) -> int:
         serve(namespace.transport, namespace.host, namespace.port)
         return 0
     if command == "due":
-        return cmd_due(namespace.as_of, namespace.notes_dir)
+        return cmd_due(namespace.as_of, namespace.knowledge_dir)
     if command == "refresh-issues":
-        return cmd_refresh(namespace.as_of, namespace.notes_dir, namespace.apply)
+        return cmd_refresh(namespace.as_of, namespace.knowledge_dir, namespace.apply)
     if command == "sync-labels":
         return cmd_labels(namespace.apply)
     if command == "site":

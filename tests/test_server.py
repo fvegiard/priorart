@@ -26,8 +26,7 @@ def _knowledge(tmp_path: Path):
         tag="debugger",
         platform="windows",
     )
-    notes = tmp_path / "content" / "notes"
-    return build_local_knowledge(notes, HashEmbedder(), include_examples=False)
+    return build_local_knowledge(tmp_path / "knowledge", HashEmbedder(), include_examples=False)
 
 
 @pytest.mark.anyio
@@ -42,8 +41,22 @@ async def test_tools_round_trip(tmp_path: Path) -> None:
         payload = found.structured_content
         assert payload is not None
         assert payload["results"][0]["id"] == "debugger-map"
+        assert payload["results"][0]["note_type"] == "fix"
         assert payload["results"][0]["recipe"]
+        assert payload["results"][0]["rollback"]
         assert payload["results"][0]["sources"]
+
+        guides = await client.call_tool(
+            "search_fixes",
+            {"query": "fixture domain", "note_type": "domain-guide"},
+        )
+        assert guides.structured_content is not None
+        assert guides.structured_content["results"][0]["id"] == "fixture-domain"
+
+        bundle = await client.call_tool("get_domain_guide", {"domain_id": "fixture-domain"})
+        assert bundle.structured_content is not None
+        assert bundle.structured_content["fixes"][0]["id"] == "debugger-map"
+        assert bundle.structured_content["fixes"][0]["root_cause"]
 
         record = await client.call_tool("get_fix", {"note_id": "debugger-map"})
         assert record.structured_content is not None
@@ -92,7 +105,13 @@ async def test_streamable_http_lists_tools(tmp_path: Path) -> None:
         async with Client(f"http://127.0.0.1:{port}/mcp") as client:
             listed = await client.list_tools()
             names = {tool.name for tool in listed.tools}
-            assert names == {"search_fixes", "get_fix", "list_topics", "list_refresh_due"}
+            assert names == {
+                "search_fixes",
+                "get_fix",
+                "get_domain_guide",
+                "list_topics",
+                "list_refresh_due",
+            }
     finally:
         http_server.should_exit = True
         thread.join(timeout=5)

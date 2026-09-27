@@ -9,8 +9,8 @@ from typing import Literal, assert_never
 import yaml
 from pydantic import BaseModel, ConfigDict
 
-from priorart.load import load_note, note_paths
-from priorart.models import Note
+from priorart.load import load_tree
+from priorart.models import NoteKind
 
 NOTE_MARKER = "priorart-note-id"
 
@@ -41,38 +41,81 @@ class RefreshAction(BaseModel):
     note_id: str
 
 
-def issue_body(note: Note, as_of: date) -> str:
+class TrackedNote(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    title: str
+    last_refreshed: date
+    refresh_due: date
+    example: bool
+    kind: NoteKind
+
+
+def _paths(kind: NoteKind, note_id: str) -> tuple[str, str]:
+    match kind:
+        case NoteKind.DOMAIN_GUIDE:
+            return (
+                f"knowledge/domains/{note_id}.md",
+                f"knowledge/sources/domains/{note_id}.json",
+            )
+        case NoteKind.FIX:
+            return (
+                f"knowledge/fixes/{note_id}.md",
+                f"knowledge/sources/fixes/{note_id}.json",
+            )
+        case _ as other:
+            assert_never(other)
+
+
+def issue_body(note: TrackedNote, as_of: date) -> str:
+    note_path, pack_path = _paths(note.kind, note.id)
     return (
         f"<!-- {NOTE_MARKER}: {note.id} -->\n\n"
-        f"This fix note is due for its monthly re-check as of {as_of.isoformat()}.\n\n"
+        f"This {note.kind.value} is due for its monthly re-check as of {as_of.isoformat()}.\n\n"
         f"- id: `{note.id}`\n"
+        f"- type: `{note.kind.value}`\n"
         f"- title: {note.title}\n"
         f"- last refreshed: {note.last_refreshed.isoformat()}\n"
         f"- refresh due: {note.refresh_due.isoformat()}\n"
-        f"- note: `content/notes/{note.id}.md`\n"
-        f"- sources: `content/sources/{note.id}.json`\n\n"
-        "Research bot: follow `AGENTS.md`. Re-verify the recipe, refresh sources "
+        f"- note: `{note_path}`\n"
+        f"- sources: `{pack_path}`\n\n"
+        "Research bot: follow `AGENTS.md`. Re-verify the note, refresh sources "
         "(community posts no older than 3 months), and open a pull request. "
         "Do not copy personal paths, emails, tokens, or internal hostnames.\n"
     )
 
 
-def due_notes(notes: list[Note], as_of: date) -> list[Note]:
+def due_notes(notes: list[TrackedNote], as_of: date) -> list[TrackedNote]:
     due = [note for note in notes if not note.example and note.refresh_due <= as_of]
     return sorted(due, key=lambda note: (note.refresh_due, note.id))
 
 
-def load_real_notes(notes_dir: Path) -> list[Note]:
-    sources_dir = notes_dir.parent / "sources"
-    notes: list[Note] = []
-    for path in note_paths(notes_dir):
-        loaded = load_note(path, sources_dir)
-        if not loaded.note.example:
-            notes.append(loaded.note)
+def load_real_notes(knowledge_dir: Path) -> list[TrackedNote]:
+    loaded, errors = load_tree(knowledge_dir.parent)
+    if errors:
+        raise ValueError("\n".join(errors))
+    notes: list[TrackedNote] = []
+    for item in loaded:
+        note = item.note
+        if note.example:
+            continue
+        notes.append(
+            TrackedNote(
+                id=note.id,
+                title=note.title,
+                last_refreshed=note.last_refreshed,
+                refresh_due=note.refresh_due,
+                example=note.example,
+                kind=note.type,
+            )
+        )
     return notes
 
 
-def plan_refresh(notes: list[Note], issues: list[OpenIssue], as_of: date) -> list[RefreshAction]:
+def plan_refresh(
+    notes: list[TrackedNote], issues: list[OpenIssue], as_of: date
+) -> list[RefreshAction]:
     open_by_id: dict[str, OpenIssue] = {}
     marker = f"<!-- {NOTE_MARKER}: "
     for issue in issues:

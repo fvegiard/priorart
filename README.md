@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/fvegiard/priorart/actions/workflows/ci.yml/badge.svg)](https://github.com/fvegiard/priorart/actions/workflows/ci.yml)
 
-PriorArt is a public, semantically searchable knowledge base of verified fixes for software and dev-environment problems. A research pass writes one fix note and a raw source pack. Coding agents then query an MCP server, take the recipe, and apply it in one attempt.
+PriorArt is a public, semantically searchable knowledge base of domain guides and verified fix recipes for software and dev-environment problems. A research pass writes a note and a raw source pack. Coding agents then query an MCP server, read the domain guide or take the recipe, and apply a fix in one attempt.
 
 No paid API and no repository secret is required for search, validation, or the MCP server.
 
@@ -10,20 +10,23 @@ No paid API and no repository secret is required for search, validation, or the 
 
 ```mermaid
 flowchart LR
-  research[Research agent] --> notes[content/notes]
-  research --> packs[content/sources]
-  notes --> ci[CI: schema, 25 sources, privacy, gitleaks]
+  research[Research agent] --> domains[knowledge/domains]
+  research --> fixes[knowledge/fixes]
+  research --> packs[knowledge/sources]
+  domains --> ci[CI: schema, links, 25 sources, privacy, gitleaks]
+  fixes --> ci
   packs --> ci
   ci --> main[main]
   main --> indexJob[Search index workflow]
   indexJob --> release[GitHub Release index-latest]
   main --> pages[GitHub Pages]
   release --> mcp[MCP server]
-  notes --> mcp
+  domains --> mcp
+  fixes --> mcp
   debug[Debugging agent] --> mcp
 ```
 
-Notes are markdown with YAML frontmatter. Each note has a JSON source pack that can hold 25 or more references. Real notes must have at least 25. The sample note is marked `example: true` and is left out of the published index and the monthly refresh queue.
+Notes are markdown with YAML frontmatter. Domain guides (`type: domain-guide`) cover a technology or skill area and list related fix ids. Fix recipes (`type: fix`) name a root cause, a recipe, verification, a rollback, and one or more domain ids. CI checks that those links resolve in both directions. Each note has a JSON source pack. Real notes must have at least 25 references. The samples are marked `example: true` and are left out of the published index and the monthly refresh queue.
 
 On every push to `main`, GitHub Actions embeds the notes with [FastEmbed](https://github.com/qdrant/fastembed) (`BAAI/bge-small-en-v1.5`, local ONNX, no API key) and publishes a hybrid index: cosine similarity fused with BM25 by reciprocal rank fusion.
 
@@ -36,7 +39,7 @@ On every push to `main`, GitHub Actions embeds the notes with [FastEmbed](https:
 | Immutable snapshot | `https://github.com/fvegiard/priorart/releases/download/index-<git-sha>/priorart-index.json` |
 | Note browser | https://fvegiard.github.io/priorart/ |
 
-`index-latest` is a prerelease whose assets are replaced on each `main` build. `index-<git-sha>` is immutable. The manifest records the git SHA, model, note ids, and the SHA-256 of the index file. The MCP server fetches the moving URL, then builds from `content/notes` if that download fails.
+`index-latest` is a prerelease whose assets are replaced on each `main` build. `index-<git-sha>` is immutable. The manifest records the git SHA, model, note ids, and the SHA-256 of the index file. The MCP server fetches the moving URL, then builds from `knowledge/` if that download fails.
 
 ## Run the MCP server locally
 
@@ -108,7 +111,7 @@ Any client that speaks streamable HTTP can use that URL. Environment variables f
 | --- | --- | --- |
 | `PRIORART_SOURCE` | `auto` | `auto` fetches the release, then builds locally. `remote` or `local` pick one |
 | `PRIORART_INDEX_URL` | the `index-latest` asset above | Override the index URL |
-| `PRIORART_NOTES_DIR` | `content/notes` in this repo | Local notes, used when building locally |
+| `PRIORART_KNOWLEDGE_DIR` | `knowledge` in this repo | Local notes, used when building locally |
 | `PRIORART_INCLUDE_EXAMPLES` | unset | Set to `1` to index `example: true` notes |
 | `PRIORART_EMBEDDER` | `fastembed` | `fastembed` or `hash` for a local build. `hash` is an offline test embedder |
 | `FASTEMBED_CACHE_PATH` | FastEmbed's own cache | Where the ONNX model is stored |
@@ -118,14 +121,15 @@ Any client that speaks streamable HTTP can use that URL. Environment variables f
 
 | Tool | Purpose |
 | --- | --- |
-| `search_fixes` | `query`, `top_k`, optional `tag` and `platform`. Returns the recipe and cited sources |
-| `get_fix` | One note by id, including the full source pack |
-| `list_topics` | Tags and platforms with counts |
+| `search_fixes` | `query`, `top_k`, optional `tag`, `platform`, and `note_type` (`domain-guide`, `fix`, or `all`). Fix hits include the recipe and cited sources |
+| `get_fix` | One fix recipe by id, including rollback and the full source pack |
+| `get_domain_guide` | One domain guide plus the fix recipes listed in `related_fixes` |
+| `list_topics` | Tags, platforms, and note types with counts |
 | `list_refresh_due` | Real notes whose `refresh_due` is on or before a date |
 
 ## Try the sample
 
-The only note in the tree is an example, so the default index ignores it.
+The notes in the tree are examples, so the default index ignores them. Search both kinds with `--type domain-guide` or `--type fix`.
 
 ```bash
 uv run priorart search "sourceFileMap debugger" --include-examples --embedder hash --expect-id example-windows-debugger-path
@@ -142,12 +146,13 @@ uv run priorart search "sourceFileMap debugger" --include-examples --expect-id e
 ## Repository layout
 
 ```
-content/notes/          fix notes and _template.md
-content/sources/        source packs and _template.json
-schema/                 JSON Schema generated from the pydantic models
-src/priorart/           loader, privacy gate, index, MCP server
-.github/workflows/      CI, index publish, Pages, CodeQL, monthly refresh, labels
-.gitleaks.toml          default secret rules plus path, email, and hostname rules
+knowledge/domains/          domain guides and _template.md
+knowledge/fixes/            fix recipes and _template.md
+knowledge/sources/          source packs for both kinds
+schema/                     JSON Schema generated from the pydantic models
+src/priorart/               loader, privacy gate, index, MCP server
+.github/workflows/          CI, index publish, Pages, CodeQL, monthly refresh, labels
+.gitleaks.toml              default secret rules plus path, email, and hostname rules
 ```
 
 The research workflow, including the 25-source minimum, the 92-day community rule, and commit messages, is [AGENTS.md](AGENTS.md). Day-to-day commands are in [CONTRIBUTING.md](CONTRIBUTING.md).

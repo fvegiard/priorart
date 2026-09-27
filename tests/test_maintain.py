@@ -2,52 +2,20 @@ from datetime import date
 from pathlib import Path
 
 from priorart.cli import main
-from priorart.maintain import OpenIssue, issue_body, load_labels, plan_refresh
-from priorart.models import Note
+from priorart.maintain import OpenIssue, TrackedNote, issue_body, load_labels, plan_refresh
+from priorart.models import NoteKind
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def _note(note_id: str, refreshed: str, due: str) -> Note:
-    return Note.model_validate(
-        {
-            "id": note_id,
-            "title": "A real note that needs a refresh plan",
-            "problem_summary": (
-                "The fixture describes a repeatable failure and the change that clears it."
-            ),
-            "tags": ["fixture"],
-            "platforms": [{"name": "windows", "versions": ["11"]}],
-            "recipe": [
-                {
-                    "name": "Apply it",
-                    "detail": "Run the fixture command in a clean shell.",
-                    "language": "powershell",
-                    "code": "Write-Output ok",
-                }
-            ],
-            "verification": [
-                {
-                    "name": "Check it",
-                    "detail": "The fixture command exits without an error.",
-                    "language": "powershell",
-                    "code": "Write-Output ok",
-                }
-            ],
-            "sources": [
-                {
-                    "url": "https://example.com/fixture/0",
-                    "title": "Fixture source 0 for the temporary note",
-                    "type": "official-docs",
-                    "published": "2026-01-15",
-                    "retrieved": "2026-09-27",
-                }
-            ],
-            "created": refreshed,
-            "last_refreshed": refreshed,
-            "refresh_due": due,
-            "example": False,
-        }
+def _note(note_id: str, refreshed: str, due: str) -> TrackedNote:
+    return TrackedNote(
+        id=note_id,
+        title="A real note that needs a refresh plan",
+        last_refreshed=date.fromisoformat(refreshed),
+        refresh_due=date.fromisoformat(due),
+        example=False,
+        kind=NoteKind.FIX,
     )
 
 
@@ -56,6 +24,7 @@ def test_plan_creates_then_skips_an_unchanged_issue() -> None:
     created = plan_refresh([note], [], date(2026, 10, 1))
     assert [item.action for item in created] == ["create"]
     assert f"priorart-note-id: {note.id}" in created[0].body
+    assert "knowledge/fixes/debugger-map.md" in created[0].body
     existing = OpenIssue(number=7, title=created[0].title, body=created[0].body)
     assert plan_refresh([note], [existing], date(2026, 10, 1)) == []
     edited = OpenIssue(number=7, title="old", body=created[0].body)

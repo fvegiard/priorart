@@ -7,6 +7,7 @@ import os
 import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import assert_never
 
 import httpx
 from pydantic import ValidationError
@@ -18,10 +19,10 @@ from priorart.constants import (
     MANIFEST_FILENAME,
 )
 from priorart.embed import Embedder, embedder_by_kind, embedder_for
-from priorart.load import LoadedNote, load_note, note_paths
-from priorart.models import IndexedNote, IndexManifest, SearchIndex
+from priorart.load import LoadedNote, load_tree
+from priorart.models import DomainGuide, FixNote, IndexedNote, IndexManifest, SearchIndex
 from priorart.textutil import document_text
-from priorart.validate import cross_file_errors, repo_root_from
+from priorart.validate import repo_root_from, validate_repository
 
 logger = logging.getLogger("priorart")
 
@@ -48,26 +49,64 @@ def git_sha(root: Path | None = None) -> str:
     return output.strip()
 
 
-def notes_dir_from_env(start: Path | None = None) -> Path:
-    override = os.environ.get("PRIORART_NOTES_DIR")
+def knowledge_dir_from_env(start: Path | None = None) -> Path:
+    override = os.environ.get("PRIORART_KNOWLEDGE_DIR")
     if override:
         return Path(override)
-    root = repo_root_from(start)
-    return root / "content" / "notes"
+    return repo_root_from(start) / "knowledge"
 
 
-def load_corpus(notes_dir: Path, *, include_examples: bool) -> list[LoadedNote]:
-    sources_dir = notes_dir.parent / "sources"
-    loaded: list[LoadedNote] = []
-    for path in note_paths(notes_dir):
-        item = load_note(path, sources_dir)
-        errors = cross_file_errors(item)
-        if errors:
-            raise ValueError("\n".join(errors))
-        if item.note.example and not include_examples:
-            continue
-        loaded.append(item)
+def load_corpus(knowledge_dir: Path, *, include_examples: bool) -> list[LoadedNote]:
+    root = knowledge_dir.parent
+    errors = validate_repository(root)
+    if errors:
+        raise ValueError("\n".join(errors))
+    loaded, load_errors = load_tree(root)
+    if load_errors:
+        raise ValueError("\n".join(load_errors))
+    if not include_examples:
+        return [item for item in loaded if not item.note.example]
     return loaded
+
+
+def _index_note(item: LoadedNote, text: str, vector: list[float]) -> IndexedNote:
+    note = item.note
+    shared = {
+        "id": note.id,
+        "note_type": note.type,
+        "title": note.title,
+        "tags": list(note.tags),
+        "platforms": list(note.platforms),
+        "source_pack": list(item.pack.references),
+        "created": note.created,
+        "last_refreshed": note.last_refreshed,
+        "refresh_due": note.refresh_due,
+        "example": note.example,
+        "text": text,
+        "embedding": vector,
+    }
+    match note:
+        case DomainGuide() as guide:
+            return IndexedNote(
+                summary=guide.summary,
+                related_fixes=list(guide.related_fixes),
+                sources_count=guide.sources_count,
+                **shared,
+            )
+        case FixNote() as fix:
+            return IndexedNote(
+                summary=fix.problem_summary,
+                problem_summary=fix.problem_summary,
+                root_cause=fix.root_cause,
+                recipe=list(fix.recipe),
+                verification=list(fix.verification),
+                rollback=list(fix.rollback),
+                domains=list(fix.domains),
+                sources=list(fix.sources),
+                **shared,
+            )
+        case _ as other:
+            assert_never(other)
 
 
 def build_index(
@@ -79,28 +118,11 @@ def build_index(
 ) -> SearchIndex:
     texts = [document_text(item.note, item.pack) for item in notes]
     vectors = embedder.embed_passages(texts) if texts else []
-    indexed: list[IndexedNote] = []
-    for item, text, vector in zip(notes, texts, vectors, strict=True):
-        note = item.note
-        indexed.append(
-            IndexedNote(
-                id=note.id,
-                title=note.title,
-                problem_summary=note.problem_summary,
-                tags=list(note.tags),
-                platforms=list(note.platforms),
-                recipe=list(note.recipe),
-                verification=list(note.verification),
-                sources=list(note.sources),
-                source_pack=list(item.pack.references),
-                created=note.created,
-                last_refreshed=note.last_refreshed,
-                refresh_due=note.refresh_due,
-                example=note.example,
-                text=text,
-                embedding=vector,
-            )
-        )
+    indexed = [
+        _index_note(item, text, vector)
+        for item, text, vector in zip(notes, texts, vectors, strict=True)
+    ]
+    indexed.sort(key=lambda note: note.id)
     stamp = built_at or datetime.now(UTC).replace(microsecond=0)
     return SearchIndex(
         schema_version=INDEX_SCHEMA_VERSION,
@@ -177,14 +199,14 @@ class Knowledge:
 
 
 def build_local_knowledge(
-    notes_dir: Path,
+    knowledge_dir: Path,
     embedder: Embedder,
     *,
     include_examples: bool,
     origin: str = "local",
 ) -> Knowledge:
-    notes = load_corpus(notes_dir, include_examples=include_examples)
-    index = build_index(notes, embedder, git_sha_value=git_sha(notes_dir.parent.parent))
+    notes = load_corpus(knowledge_dir, include_examples=include_examples)
+    index = build_index(notes, embedder, git_sha_value=git_sha(knowledge_dir.parent))
     return Knowledge(index=index, origin=origin, embedder=embedder)
 
 
@@ -196,7 +218,7 @@ def load_knowledge(
     *,
     source: str | None = None,
     index_url: str | None = None,
-    notes_dir: Path | None = None,
+    knowledge_dir: Path | None = None,
     include_examples: bool | None = None,
     embedder_kind: str | None = None,
     client: httpx.Client | None = None,
@@ -209,7 +231,7 @@ def load_knowledge(
         raise ValueError("PRIORART_SOURCE must be auto, remote, or local")
 
     def local() -> Knowledge:
-        directory = notes_dir or notes_dir_from_env()
+        directory = knowledge_dir or knowledge_dir_from_env()
         logger.info("building a local index from %s", directory)
         return build_local_knowledge(
             directory,

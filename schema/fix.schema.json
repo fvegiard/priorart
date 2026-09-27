@@ -27,6 +27,7 @@
     },
     "Source": {
       "additionalProperties": false,
+      "description": "A source cited in a fix recipe. The pack copy adds relevance.",
       "properties": {
         "url": {
           "maxLength": 500,
@@ -142,6 +143,11 @@
       "title": "Id",
       "type": "string"
     },
+    "type": {
+      "const": "fix",
+      "title": "Type",
+      "type": "string"
+    },
     "title": {
       "maxLength": 160,
       "minLength": 10,
@@ -152,6 +158,12 @@
       "maxLength": 2000,
       "minLength": 40,
       "title": "Problem Summary",
+      "type": "string"
+    },
+    "root_cause": {
+      "maxLength": 4000,
+      "minLength": 40,
+      "title": "Root Cause",
       "type": "string"
     },
     "tags": {
@@ -173,6 +185,16 @@
       "title": "Platforms",
       "type": "array"
     },
+    "domains": {
+      "items": {
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+        "type": "string"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Domains",
+      "type": "array"
+    },
     "recipe": {
       "items": {
         "$ref": "#/$defs/Step"
@@ -189,6 +211,15 @@
       "maxItems": 10,
       "minItems": 1,
       "title": "Verification",
+      "type": "array"
+    },
+    "rollback": {
+      "items": {
+        "$ref": "#/$defs/Step"
+      },
+      "maxItems": 10,
+      "minItems": 1,
+      "title": "Rollback",
       "type": "array"
     },
     "sources": {
@@ -223,17 +254,21 @@
   },
   "required": [
     "id",
+    "type",
     "title",
     "problem_summary",
+    "root_cause",
     "tags",
     "platforms",
+    "domains",
     "recipe",
     "verification",
+    "rollback",
     "sources",
     "created",
     "last_refreshed",
     "refresh_due"
   ],
-  "title": "Note",
+  "title": "FixNote",
   "type": "object"
 }

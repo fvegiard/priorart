@@ -14,7 +14,7 @@ uv run priorart validate
 uv run priorart privacy
 ```
 
-If you change `Note` or `SourcePack`, regenerate the schemas and commit them:
+If you change `DomainGuide`, `FixNote`, or `SourcePack`, regenerate the schemas and commit them:
 
 ```bash
 uv run priorart export-schema

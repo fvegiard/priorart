@@ -1,8 +1,8 @@
-"""Content model for fix notes and the published search index."""
+"""Content model for domain guides, fix recipes, and the published search index."""
 
 from datetime import date, datetime
 from enum import StrEnum
-from typing import Annotated, assert_never
+from typing import Annotated, Literal, assert_never
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -21,7 +21,51 @@ def _coerce_date(value: object) -> object:
     return value
 
 
-DateValue = Annotated[date, Field(description="ISO date, YYYY-MM-DD.")]
+def _unique(values: list[str], label: str) -> None:
+    folded = [value.casefold() for value in values]
+    if len(folded) != len(set(folded)):
+        raise ValueError(f"{label} must be unique")
+
+
+def _check_source_dates(kind: "SourceType", published: date | None, retrieved: date) -> None:
+    if published is not None and published > retrieved:
+        raise ValueError("published is after retrieved")
+    match kind:
+        case SourceType.COMMUNITY:
+            if published is None:
+                raise ValueError("community sources need a published date")
+            age = (retrieved - published).days
+            if age > COMMUNITY_MAX_AGE_DAYS:
+                raise ValueError(
+                    f"community source is {age} days old; maximum is {COMMUNITY_MAX_AGE_DAYS}"
+                )
+        case (
+            SourceType.OFFICIAL_DOCS
+            | SourceType.GITHUB_ISSUE
+            | SourceType.GITHUB_DISCUSSION
+            | SourceType.GITHUB_REPO
+            | SourceType.OTHER
+        ):
+            pass
+        case _ as other:
+            assert_never(other)
+
+
+def _check_refresh(note_id: str, created: date, refreshed: date, due: date, example: bool) -> None:
+    if example != note_id.startswith("example-"):
+        raise ValueError(
+            "example notes must use an example- id, and that prefix must set example: true"
+        )
+    if created > refreshed:
+        raise ValueError("created is after last_refreshed")
+    window = (due - refreshed).days
+    if window < 1 or window > REFRESH_MAX_DAYS:
+        raise ValueError(f"refresh_due must be 1 to {REFRESH_MAX_DAYS} days after last_refreshed")
+
+
+class NoteKind(StrEnum):
+    DOMAIN_GUIDE = "domain-guide"
+    FIX = "fix"
 
 
 class SourceType(StrEnum):
@@ -56,6 +100,8 @@ class Step(StrictModel):
 
 
 class Source(StrictModel):
+    """A source cited in a fix recipe. The pack copy adds relevance."""
+
     url: Annotated[str, Field(pattern=r"^https://\S+$", max_length=500)]
     title: Annotated[str, Field(min_length=3, max_length=200)]
     type: SourceType
@@ -75,33 +121,33 @@ class Source(StrictModel):
 
     @model_validator(mode="after")
     def check_dates(self) -> "Source":
-        if self.published is not None and self.published > self.retrieved:
-            raise ValueError("published is after retrieved")
-        match self.type:
-            case SourceType.COMMUNITY:
-                if self.published is None:
-                    raise ValueError("community sources need a published date")
-                age = (self.retrieved - self.published).days
-                if age > COMMUNITY_MAX_AGE_DAYS:
-                    raise ValueError(
-                        f"community source is {age} days old; maximum is {COMMUNITY_MAX_AGE_DAYS}"
-                    )
-            case (
-                SourceType.OFFICIAL_DOCS
-                | SourceType.GITHUB_ISSUE
-                | SourceType.GITHUB_DISCUSSION
-                | SourceType.GITHUB_REPO
-                | SourceType.OTHER
-            ):
-                pass
-            case _ as other:
-                assert_never(other)
+        _check_source_dates(self.type, self.published, self.retrieved)
         return self
 
 
-class SourcePackEntry(Source):
-    excerpt: Annotated[str, Field(min_length=1, max_length=2000)] | None = None
-    why_relevant: Annotated[str, Field(min_length=10, max_length=1000)]
+class SourcePackEntry(StrictModel):
+    url: Annotated[str, Field(pattern=r"^https://\S+$", max_length=500)]
+    title: Annotated[str, Field(min_length=3, max_length=200)]
+    type: SourceType
+    published: date
+    retrieved: date
+    relevance: Annotated[str, Field(min_length=10, max_length=1000)]
+
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_dates(cls, data: object) -> object:
+        if not isinstance(data, dict):
+            return data
+        updated = dict(data)
+        for key in ("published", "retrieved"):
+            if key in updated:
+                updated[key] = _coerce_date(updated[key])
+        return updated
+
+    @model_validator(mode="after")
+    def check_dates(self) -> "SourcePackEntry":
+        _check_source_dates(self.type, self.published, self.retrieved)
+        return self
 
 
 class SourcePack(StrictModel):
@@ -126,16 +172,57 @@ class SourcePack(StrictModel):
         return self
 
 
-class Note(StrictModel):
-    id: Annotated[str, Field(pattern=NOTE_ID_PATTERN)]
+Slug = Annotated[str, Field(pattern=NOTE_ID_PATTERN)]
+TagList = Annotated[list[Slug], Field(min_length=1, max_length=12)]
+PlatformList = Annotated[list[Platform], Field(min_length=1, max_length=8)]
+
+
+class DomainGuide(StrictModel):
+    id: Slug
+    type: Literal[NoteKind.DOMAIN_GUIDE]
+    title: Annotated[str, Field(min_length=10, max_length=160)]
+    summary: Annotated[str, Field(min_length=40, max_length=4000)]
+    tags: TagList
+    platforms: PlatformList
+    related_fixes: Annotated[list[Slug], Field(max_length=40)]
+    created: date
+    last_refreshed: date
+    refresh_due: date
+    sources_count: Annotated[int, Field(ge=1, le=80)]
+    example: bool = False
+
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_note_dates(cls, data: object) -> object:
+        if not isinstance(data, dict):
+            return data
+        updated = dict(data)
+        for key in ("created", "last_refreshed", "refresh_due"):
+            if key in updated:
+                updated[key] = _coerce_date(updated[key])
+        return updated
+
+    @model_validator(mode="after")
+    def check_guide(self) -> "DomainGuide":
+        _check_refresh(self.id, self.created, self.last_refreshed, self.refresh_due, self.example)
+        _unique(self.tags, "tags")
+        _unique([platform.name for platform in self.platforms], "platforms")
+        _unique(self.related_fixes, "related_fixes")
+        return self
+
+
+class FixNote(StrictModel):
+    id: Slug
+    type: Literal[NoteKind.FIX]
     title: Annotated[str, Field(min_length=10, max_length=160)]
     problem_summary: Annotated[str, Field(min_length=40, max_length=2000)]
-    tags: Annotated[
-        list[Annotated[str, Field(pattern=NOTE_ID_PATTERN)]], Field(min_length=1, max_length=12)
-    ]
-    platforms: Annotated[list[Platform], Field(min_length=1, max_length=8)]
+    root_cause: Annotated[str, Field(min_length=40, max_length=4000)]
+    tags: TagList
+    platforms: PlatformList
+    domains: Annotated[list[Slug], Field(min_length=1, max_length=8)]
     recipe: Annotated[list[Step], Field(min_length=1, max_length=20)]
     verification: Annotated[list[Step], Field(min_length=1, max_length=10)]
+    rollback: Annotated[list[Step], Field(min_length=1, max_length=10)]
     sources: Annotated[list[Source], Field(min_length=1, max_length=30)]
     created: date
     last_refreshed: date
@@ -154,24 +241,11 @@ class Note(StrictModel):
         return updated
 
     @model_validator(mode="after")
-    def check_note(self) -> "Note":
-        if self.example != self.id.startswith("example-"):
-            raise ValueError(
-                "example notes must use an example- id, and that prefix must set example: true"
-            )
-        if self.created > self.last_refreshed:
-            raise ValueError("created is after last_refreshed")
-        window = (self.refresh_due - self.last_refreshed).days
-        if window < 1 or window > REFRESH_MAX_DAYS:
-            raise ValueError(
-                f"refresh_due must be 1 to {REFRESH_MAX_DAYS} days after last_refreshed"
-            )
-        tags = [tag.casefold() for tag in self.tags]
-        if len(tags) != len(set(tags)):
-            raise ValueError("tags must be unique")
-        names = [platform.name.casefold() for platform in self.platforms]
-        if len(names) != len(set(names)):
-            raise ValueError("platforms must be unique")
+    def check_fix(self) -> "FixNote":
+        _check_refresh(self.id, self.created, self.last_refreshed, self.refresh_due, self.example)
+        _unique(self.tags, "tags")
+        _unique([platform.name for platform in self.platforms], "platforms")
+        _unique(self.domains, "domains")
         urls = [source.url for source in self.sources]
         if len(urls) != len(set(urls)):
             raise ValueError("cited source URLs must be unique")
@@ -180,15 +254,16 @@ class Note(StrictModel):
         return self
 
 
+KnowledgeNote = DomainGuide | FixNote
+
+
 class IndexedNote(StrictModel):
     id: str
+    note_type: NoteKind
     title: str
-    problem_summary: str
+    summary: str
     tags: list[str]
     platforms: list[Platform]
-    recipe: list[Step]
-    verification: list[Step]
-    sources: list[Source]
     source_pack: list[SourcePackEntry]
     created: date
     last_refreshed: date
@@ -196,6 +271,15 @@ class IndexedNote(StrictModel):
     example: bool
     text: str
     embedding: list[float]
+    related_fixes: list[str] = Field(default_factory=list)
+    sources_count: int = 0
+    problem_summary: str = ""
+    root_cause: str = ""
+    recipe: list[Step] = Field(default_factory=list)
+    verification: list[Step] = Field(default_factory=list)
+    rollback: list[Step] = Field(default_factory=list)
+    domains: list[str] = Field(default_factory=list)
+    sources: list[Source] = Field(default_factory=list)
 
 
 class SearchIndex(StrictModel):
@@ -231,22 +315,30 @@ class IndexManifest(StrictModel):
 
 class SearchHit(StrictModel):
     id: str
+    note_type: NoteKind
     title: str
-    problem_summary: str
+    summary: str
     tags: list[str]
     platforms: list[Platform]
     score: float
-    recipe: list[Step]
-    verification: list[Step]
-    sources: list[Source]
     last_refreshed: date
     refresh_due: date
+    related_fixes: list[str] = Field(default_factory=list)
+    sources_count: int = 0
+    problem_summary: str = ""
+    root_cause: str = ""
+    recipe: list[Step] = Field(default_factory=list)
+    verification: list[Step] = Field(default_factory=list)
+    rollback: list[Step] = Field(default_factory=list)
+    domains: list[str] = Field(default_factory=list)
+    sources: list[Source] = Field(default_factory=list)
 
 
 class SearchResponse(StrictModel):
     query: str
     origin: str
     retrieval: str
+    note_type: str | None = None
     warning: str | None = None
     results: list[SearchHit]
 
@@ -255,11 +347,31 @@ class FixRecord(StrictModel):
     id: str
     title: str
     problem_summary: str
+    root_cause: str
     tags: list[str]
     platforms: list[Platform]
+    domains: list[str]
     recipe: list[Step]
     verification: list[Step]
+    rollback: list[Step]
     sources: list[Source]
+    source_pack: list[SourcePackEntry]
+    created: date
+    last_refreshed: date
+    refresh_due: date
+    example: bool
+
+
+class DomainGuideRecord(StrictModel):
+    id: str
+    title: str
+    summary: str
+    tags: list[str]
+    platforms: list[Platform]
+    related_fixes: list[str]
+    fixes: list[FixRecord]
+    missing_fix_ids: list[str]
+    sources_count: int
     source_pack: list[SourcePackEntry]
     created: date
     last_refreshed: date
@@ -275,10 +387,12 @@ class TopicCount(StrictModel):
 class TopicList(StrictModel):
     tags: list[TopicCount]
     platforms: list[TopicCount]
+    note_types: list[TopicCount]
 
 
 class DueNote(StrictModel):
     id: str
+    note_type: NoteKind
     title: str
     last_refreshed: date
     refresh_due: date

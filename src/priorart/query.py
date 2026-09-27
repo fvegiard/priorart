@@ -4,7 +4,7 @@ import math
 from dataclasses import dataclass
 
 from priorart.embed import Embedder
-from priorart.models import IndexedNote, SearchHit, SearchIndex, SearchResponse
+from priorart.models import IndexedNote, NoteKind, SearchHit, SearchIndex, SearchResponse
 from priorart.textutil import tokenize
 
 _K1 = 1.5
@@ -73,11 +73,14 @@ def _filter_notes(
     *,
     tag: str | None,
     platform: str | None,
+    note_type: NoteKind | None,
 ) -> list[IndexedNote]:
     selected: list[IndexedNote] = []
     tag_key = tag.casefold() if tag else None
     platform_key = platform.casefold() if platform else None
     for note in notes:
+        if note_type is not None and note.note_type is not note_type:
+            continue
         if tag_key is not None and tag_key not in {item.casefold() for item in note.tags}:
             continue
         if platform_key is not None and platform_key not in {
@@ -103,16 +106,23 @@ def _fuse(rankings: list[list[str]]) -> list[tuple[str, float]]:
 def _hit(note: IndexedNote, score: float) -> SearchHit:
     return SearchHit(
         id=note.id,
+        note_type=note.note_type,
         title=note.title,
-        problem_summary=note.problem_summary,
+        summary=note.summary,
         tags=list(note.tags),
         platforms=list(note.platforms),
         score=round(score, 6),
-        recipe=list(note.recipe),
-        verification=list(note.verification),
-        sources=list(note.sources),
         last_refreshed=note.last_refreshed,
         refresh_due=note.refresh_due,
+        related_fixes=list(note.related_fixes),
+        sources_count=note.sources_count,
+        problem_summary=note.problem_summary,
+        root_cause=note.root_cause,
+        recipe=list(note.recipe),
+        verification=list(note.verification),
+        rollback=list(note.rollback),
+        domains=list(note.domains),
+        sources=list(note.sources),
     )
 
 
@@ -124,11 +134,15 @@ def search_index(
     top_k: int,
     tag: str | None = None,
     platform: str | None = None,
+    note_type: NoteKind | None = None,
     origin: str,
 ) -> SearchResponse:
-    selected = _filter_notes(index.notes, tag=tag, platform=platform)
+    selected = _filter_notes(index.notes, tag=tag, platform=platform, note_type=note_type)
+    kind = note_type.value if note_type is not None else None
     if not selected:
-        return SearchResponse(query=query, origin=origin, retrieval="keyword", results=[])
+        return SearchResponse(
+            query=query, origin=origin, retrieval="keyword", note_type=kind, results=[]
+        )
 
     tokens = [tokenize(note.text) for note in selected]
     bm25 = _BM25.build(tokens)
@@ -164,6 +178,7 @@ def search_index(
         query=query,
         origin=origin,
         retrieval=retrieval,
+        note_type=kind,
         warning=warning,
         results=hits,
     )

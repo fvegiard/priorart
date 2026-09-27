@@ -26,7 +26,7 @@ def test_remote_index_is_preferred_and_local_is_the_fallback(tmp_path: Path) -> 
         code="sourceFileMap maps the foreign root.",
     )
     local = build_local_knowledge(
-        tmp_path / "content" / "notes",
+        tmp_path / "knowledge",
         HashEmbedder(),
         include_examples=False,
     )
@@ -41,7 +41,7 @@ def test_remote_index_is_preferred_and_local_is_the_fallback(tmp_path: Path) -> 
     remote = load_knowledge(
         source="auto",
         index_url="https://example.com/priorart-index.json",
-        notes_dir=tmp_path / "content" / "notes",
+        knowledge_dir=tmp_path / "knowledge",
         include_examples=False,
         embedder_kind="hash",
         client=client,
@@ -52,7 +52,7 @@ def test_remote_index_is_preferred_and_local_is_the_fallback(tmp_path: Path) -> 
     fallback = load_knowledge(
         source="auto",
         index_url="https://example.com/missing.json",
-        notes_dir=tmp_path / "content" / "notes",
+        knowledge_dir=tmp_path / "knowledge",
         include_examples=False,
         embedder_kind="hash",
         client=client,
@@ -77,7 +77,7 @@ def test_fetch_index_rejects_invalid_json() -> None:
 def test_manifest_hash_matches_bytes(tmp_path: Path) -> None:
     write_note(tmp_path, note_id="example-one", example=True, source_count=1)
     knowledge = build_local_knowledge(
-        tmp_path / "content" / "notes",
+        tmp_path / "knowledge",
         HashEmbedder(),
         include_examples=True,
     )
@@ -86,4 +86,4 @@ def test_manifest_hash_matches_bytes(tmp_path: Path) -> None:
     digest = hashlib.sha256(output.read_bytes()).hexdigest()
     assert manifest.index_sha256 == digest
     saved = json.loads((tmp_path / "priorart-index-manifest.json").read_text(encoding="utf-8"))
-    assert saved["note_ids"] == ["example-one"]
+    assert saved["note_ids"] == ["example-fixture-domain", "example-one"]

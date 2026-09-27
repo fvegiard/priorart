@@ -41,10 +41,13 @@ def test_validate_privacy_and_sample_search() -> None:
 
 def test_site_lists_the_example(tmp_path: Path) -> None:
     count = build_site(ROOT, tmp_path)
-    assert count == 1
-    page = (tmp_path / "notes" / "example-windows-debugger-path.html").read_text(encoding="utf-8")
+    assert count == 2
+    page = (tmp_path / "fixes" / "example-windows-debugger-path.html").read_text(encoding="utf-8")
+    guide = (tmp_path / "domains" / "example-windows-debugger.html").read_text(encoding="utf-8")
     index = (tmp_path / "index.html").read_text(encoding="utf-8")
     assert "Example only" in page
     assert "sourceFileMap" in page
+    assert "Root cause" in page
+    assert "Related fixes" in guide
     assert "example-windows-debugger-path" in index
     assert "Ignored by search" in index
