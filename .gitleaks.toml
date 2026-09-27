@@ -1,0 +1,73 @@
+title = "priorart"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Local environments and bytecode are not authored source"
+paths = [
+  '''(^|/)\.venv/''',
+  '''__pycache__/''',
+  '''(^|/)\.pytest_cache/''',
+  '''(^|/)\.ruff_cache/''',
+  '''(^|/)\.fastembed_cache/''',
+]
+
+[[rules]]
+id = "windows-user-profile"
+description = "Windows profile path that can identify a person"
+regex = '''(?i)[A-Z]:\\Users\\[A-Za-z0-9._-]{2,}'''
+keywords = ['''\Users\''']
+[[rules.allowlists]]
+description = "Built-in profile folders and angle-bracket placeholders are not people"
+regexTarget = "match"
+regexes = [
+  '''(?i)\\Users\\(Public|Default|All Users|Default User|USERNAME|user)(\\|$)''',
+]
+paths = ['''(^|/)\.gitleaks\.toml$''', '''src/priorart/privacy\.py''']
+
+[[rules]]
+id = "home-directory-user"
+description = "Home directory path that can identify a person"
+regex = '''(?i)/(?:home|Users)/[A-Za-z0-9._-]{2,}'''
+keywords = ['''/home/''', '''/Users/''']
+[[rules.allowlists]]
+description = "Generic account folder names"
+regexTarget = "match"
+regexes = [
+  '''(?i)/(?:home|Users)/(user|username|shared|public)(/|$)''',
+]
+paths = ['''(^|/)\.gitleaks\.toml$''', '''src/priorart/privacy\.py''']
+
+[[rules]]
+id = "email-address"
+description = "Email address that is not a documentation placeholder"
+regex = '''[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}'''
+keywords = ["@"]
+[[rules.allowlists]]
+description = "Reserved example domains"
+regexTarget = "match"
+regexes = [
+  '''(?i)@example\.(com|org|net)\b''',
+  '''(?i)@localhost\b''',
+]
+paths = ['''src/priorart/privacy\.py''', '''tests/test_privacy\.py''']
+
+[[rules]]
+id = "internal-hostname"
+description = "Internal DNS name"
+regex = '''(?i)\b[a-z0-9][a-z0-9-]{0,62}\.(?:internal|corp|lan|local|localdomain)\b'''
+keywords = [".internal", ".corp", ".lan", ".local", ".localdomain"]
+[[rules.allowlists]]
+paths = ['''src/priorart/privacy\.py''', '''(^|/)\.gitleaks\.toml$''']
+
+[[rules]]
+id = "unc-path"
+description = "UNC path that can name an internal host"
+regex = '''\\\\[A-Za-z0-9][A-Za-z0-9.-]{1,62}\\[A-Za-z0-9$._-]+'''
+keywords = ['''\\''']
+[[rules.allowlists]]
+description = "Generic UNC placeholders"
+regexTarget = "match"
+regexes = ['''(?i)\\\\(localhost|server|host)\\''']
+paths = ['''src/priorart/privacy\.py''', '''(^|/)\.gitleaks\.toml$''', '''tests/.*''']

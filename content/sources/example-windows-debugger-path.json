@@ -1,0 +1,212 @@
+{
+  "note_id": "example-windows-debugger-path",
+  "collected_at": "2026-09-27",
+  "references": [
+    {
+      "url": "https://example.com/priorart/example/official/source-file-map",
+      "title": "Example official note on debugger source maps",
+      "type": "official-docs",
+      "published": "2026-02-11",
+      "retrieved": "2026-09-27",
+      "excerpt": "sourceFileMap replaces a foreign absolute root with a path on this machine.",
+      "why_relevant": "Defines the launch.json mapping the sample recipe copies."
+    },
+    {
+      "url": "https://example.com/priorart/example/official/environment-paths",
+      "title": "Example official note on environment-based source paths",
+      "type": "official-docs",
+      "published": "2026-04-02",
+      "retrieved": "2026-09-27",
+      "excerpt": "Native debuggers read _NT_SOURCE_PATH when symbols omit a usable source location.",
+      "why_relevant": "Justifies setting the source path from USERPROFILE rather than a literal account directory."
+    },
+    {
+      "url": "https://example.com/priorart/example/community/source-map-windows",
+      "title": "Example community thread on Windows source maps",
+      "type": "community",
+      "published": "2026-08-01",
+      "retrieved": "2026-09-27",
+      "excerpt": "A trailing slash mismatch makes sourceFileMap miss every file.",
+      "why_relevant": "Recent community report of the Windows mapping failure this sample describes."
+    },
+    {
+      "url": "https://example.com/priorart/example/community/wsl-debugger-paths",
+      "title": "Example community thread on WSL debugger paths",
+      "type": "community",
+      "published": "2026-09-02",
+      "retrieved": "2026-09-27",
+      "excerpt": "WSL builds record Linux paths that Windows cppdbg will not open until they are mapped.",
+      "why_relevant": "Covers the WSL half of the sample platforms."
+    },
+    {
+      "url": "https://example.com/priorart/example/issues/cppdbg-source-map",
+      "title": "Example GitHub issue about cppdbg source maps",
+      "type": "github-issue",
+      "published": "2026-05-02",
+      "retrieved": "2026-09-27",
+      "excerpt": "The debugger opens the path stored in the binary instead of the mapped workspace file.",
+      "why_relevant": "Issue thread that names sourceFileMap as the working workaround."
+    },
+    {
+      "url": "https://example.com/priorart/example/repos/source-map-helper",
+      "title": "Example repository that rewrites debugger source maps",
+      "type": "github-repo",
+      "published": "2026-09-12",
+      "retrieved": "2026-09-27",
+      "excerpt": "A small script emits a sourceFileMap block from a build log.",
+      "why_relevant": "Recently active example of a repo that already automates this fix."
+    },
+    {
+      "url": "https://example.com/priorart/example/supplemental/01",
+      "title": "Example supplemental source 1: launch configuration reference",
+      "type": "official-docs",
+      "published": "2026-01-20",
+      "retrieved": "2026-09-27",
+      "why_relevant": "Scaffolding entry 1 so this sample pack holds 25 references. Topic: launch configuration reference. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/supplemental/02",
+      "title": "Example supplemental source 2: environment variable reference",
+      "type": "official-docs",
+      "published": "2025-11-03",
+      "retrieved": "2026-09-27",
+      "why_relevant": "Scaffolding entry 2 so this sample pack holds 25 references. Topic: environment variable reference. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/supplemental/03",
+      "title": "Example supplemental source 3: debugging overview",
+      "type": "official-docs",
+      "published": "2026-05-18",
+      "retrieved": "2026-09-27",
+      "why_relevant": "Scaffolding entry 3 so this sample pack holds 25 references. Topic: debugging overview. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/supplemental/04",
+      "title": "Example supplemental source 4: moved build directory",
+      "type": "community",
+      "published": "2026-07-02",
+      "retrieved": "2026-09-27",
+      "why_relevant": "Scaffolding entry 4 so this sample pack holds 25 references. Topic: moved build directory. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/supplemental/05",
+      "title": "Example supplemental source 5: another machine checkout",
+      "type": "community",
+      "published": "2026-07-18",
+      "retrieved": "2026-09-27",
+      "why_relevant": "Scaffolding entry 5 so this sample pack holds 25 references. Topic: another machine checkout. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/supplemental/06",
+      "title": "Example supplemental source 6: native source path versus launch.json",
+      "type": "community",
+      "published": "2026-08-09",
+      "retrieved": "2026-09-27",
+      "why_relevant": "Scaffolding entry 6 so this sample pack holds 25 references. Topic: native source path versus launch.json. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/supplemental/07",
+      "title": "Example supplemental source 7: trailing slash on the mapped root",
+      "type": "community",
+      "published": "2026-08-21",
+      "retrieved": "2026-09-27",
+      "why_relevant": "Scaffolding entry 7 so this sample pack holds 25 references. Topic: trailing slash on the mapped root. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/supplemental/08",
+      "title": "Example supplemental source 8: symbols versus source files",
+      "type": "community",
+      "published": "2026-09-11",
+      "retrieved": "2026-09-27",
+      "why_relevant": "Scaffolding entry 8 so this sample pack holds 25 references. Topic: symbols versus source files. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/supplemental/09",
+      "title": "Example supplemental source 9: working directory mismatch",
+      "type": "community",
+      "published": "2026-09-19",
+      "retrieved": "2026-09-27",
+      "why_relevant": "Scaffolding entry 9 so this sample pack holds 25 references. Topic: working directory mismatch. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/supplemental/10",
+      "title": "Example supplemental source 10: cpptools path bug",
+      "type": "github-issue",
+      "published": "2026-03-14",
+      "retrieved": "2026-09-27",
+      "why_relevant": "Scaffolding entry 10 so this sample pack holds 25 references. Topic: cpptools path bug. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/supplemental/11",
+      "title": "Example supplemental source 11: editor does not open mapped file",
+      "type": "github-issue",
+      "published": "2026-06-01",
+      "retrieved": "2026-09-27",
+      "why_relevant": "Scaffolding entry 11 so this sample pack holds 25 references. Topic: editor does not open mapped file. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/supplemental/12",
+      "title": "Example supplemental source 12: stale source path in the binary",
+      "type": "github-issue",
+      "published": "2026-01-09",
+      "retrieved": "2026-09-27",
+      "why_relevant": "Scaffolding entry 12 so this sample pack holds 25 references. Topic: stale source path in the binary. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/supplemental/13",
+      "title": "Example supplemental source 13: mapped path ignored for headers",
+      "type": "github-issue",
+      "published": "2026-08-15",
+      "retrieved": "2026-09-27",
+      "why_relevant": "Scaffolding entry 13 so this sample pack holds 25 references. Topic: mapped path ignored for headers. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/supplemental/14",
+      "title": "Example supplemental source 14: how people map foreign roots",
+      "type": "github-discussion",
+      "published": "2026-07-28",
+      "retrieved": "2026-09-27",
+      "why_relevant": "Scaffolding entry 14 so this sample pack holds 25 references. Topic: how people map foreign roots. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/supplemental/15",
+      "title": "Example supplemental source 15: WSL and Windows debugger discussion",
+      "type": "github-discussion",
+      "published": "2026-08-30",
+      "retrieved": "2026-09-27",
+      "why_relevant": "Scaffolding entry 15 so this sample pack holds 25 references. Topic: WSL and Windows debugger discussion. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/supplemental/16",
+      "title": "Example supplemental source 16: monthly re-check of path mapping",
+      "type": "github-discussion",
+      "published": "2026-09-05",
+      "retrieved": "2026-09-27",
+      "why_relevant": "Scaffolding entry 16 so this sample pack holds 25 references. Topic: monthly re-check of path mapping. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/supplemental/17",
+      "title": "Example supplemental source 17: script that prints a source map",
+      "type": "github-repo",
+      "published": "2026-08-22",
+      "retrieved": "2026-09-27",
+      "why_relevant": "Scaffolding entry 17 so this sample pack holds 25 references. Topic: script that prints a source map. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/supplemental/18",
+      "title": "Example supplemental source 18: agent skill that patches launch.json",
+      "type": "github-repo",
+      "published": "2026-09-20",
+      "retrieved": "2026-09-27",
+      "why_relevant": "Scaffolding entry 18 so this sample pack holds 25 references. Topic: agent skill that patches launch.json. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/supplemental/19",
+      "title": "Example supplemental source 19: bot that collects debugger issues",
+      "type": "github-repo",
+      "published": "2026-09-18",
+      "retrieved": "2026-09-27",
+      "why_relevant": "Scaffolding entry 19 so this sample pack holds 25 references. Topic: bot that collects debugger issues. Not a real citation."
+    }
+  ]
+}

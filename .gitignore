@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyright/
+dist/
+_site/
+*.egg-info/
+.fastembed_cache/
+fastembed_cache/
+.coverage
+htmlcov/

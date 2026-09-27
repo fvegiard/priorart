@@ -1,0 +1,35 @@
+name: Fix outcome
+description: Report whether a published recipe worked.
+title: "outcome: "
+labels:
+  - outcome
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Say whether the recipe worked. Leave out personal paths, emails, tokens, and internal hostnames.
+  - type: input
+    id: note_id
+    attributes:
+      label: Note id
+      description: The id from the fix note, such as windows-debugger-source-map.
+      placeholder: windows-debugger-source-map
+    validations:
+      required: true
+  - type: dropdown
+    id: result
+    attributes:
+      label: Did the recipe work?
+      options:
+        - "Yes, the verification steps passed"
+        - "Partly, some steps failed"
+        - "No, the recipe did not fix it"
+    validations:
+      required: true
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened
+      description: Include the platform and versions. Do not paste a personal profile path.
+    validations:
+      required: true

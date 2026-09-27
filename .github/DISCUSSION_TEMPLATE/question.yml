@@ -1,0 +1,19 @@
+title: "Question"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Discussions are for questions about a note or the server. A new investigation belongs in a research-request issue. Do not include personal paths, emails, tokens, or internal hostnames.
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+    validations:
+      required: true
+  - type: input
+    id: note_id
+    attributes:
+      label: Note id
+      description: Optional. Leave blank if this is not about one note.
+    validations:
+      required: false

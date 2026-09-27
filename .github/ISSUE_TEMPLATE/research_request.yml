@@ -1,0 +1,30 @@
+name: Research request
+description: Ask the research bot to investigate a problem and add a fix note.
+title: "research: "
+labels:
+  - research-bot
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the failure. Do not include personal profile paths, email addresses, tokens, or internal hostnames. Use `C:\Users\<USER>\` or environment variables when a path is part of the problem.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What breaks, and what a successful fix would change.
+    validations:
+      required: true
+  - type: input
+    id: platforms
+    attributes:
+      label: Platforms and versions
+      placeholder: windows 11, WSL 2
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: What you already tried
+    validations:
+      required: false

@@ -1,0 +1,12 @@
+- name: research-bot
+  color: "1d4ed8"
+  description: Research bot work for a new investigation or a note refresh
+- name: refresh
+  color: "b45309"
+  description: Fix note is due for its monthly re-check
+- name: outcome
+  color: "047857"
+  description: Report of whether a published recipe worked
+- name: bug
+  color: "b91c1c"
+  description: Defect in the server, index, validation, or site
