@@ -1,0 +1,35 @@
+name: Knowledge report
+description: Report how published knowledge compared with a case an agent saw.
+title: "report: "
+labels:
+  - outcome
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Say whether the published knowledge matched the case. Leave out personal paths, emails, tokens, and internal hostnames. This does not ask Priorart to change a machine.
+  - type: input
+    id: note_id
+    attributes:
+      label: Note id
+      description: The id from the problem note or domain guide, such as windows-debugger-source-map.
+      placeholder: windows-debugger-source-map
+    validations:
+      required: true
+  - type: dropdown
+    id: result
+    attributes:
+      label: How did the knowledge compare?
+      options:
+        - "It matched the symptoms, causes, and documented solutions"
+        - "It matched in part"
+        - "It did not match this case"
+    validations:
+      required: true
+  - type: textarea
+    id: happened
+    attributes:
+      label: What the agent observed
+      description: Include the platform and versions. Do not paste a personal profile path.
+    validations:
+      required: true

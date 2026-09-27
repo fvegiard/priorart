@@ -34,20 +34,20 @@ async def test_tools_round_trip(tmp_path: Path) -> None:
     server = create_server(_knowledge(tmp_path))
     async with Client(server) as client:
         found = await client.call_tool(
-            "search_fixes",
+            "search_knowledge",
             {"query": "sourceFileMap debugger", "top_k": 3, "platform": "windows"},
         )
         assert found.is_error is False
         payload = found.structured_content
         assert payload is not None
         assert payload["results"][0]["id"] == "debugger-map"
-        assert payload["results"][0]["note_type"] == "fix"
-        assert payload["results"][0]["recipe"]
-        assert payload["results"][0]["rollback"]
+        assert payload["results"][0]["note_type"] == "problem"
+        assert payload["results"][0]["documented_solutions"]
+        assert payload["results"][0]["caveats"]
         assert payload["results"][0]["sources"]
 
         guides = await client.call_tool(
-            "search_fixes",
+            "search_knowledge",
             {"query": "fixture domain", "note_type": "domain-guide"},
         )
         assert guides.structured_content is not None
@@ -55,14 +55,14 @@ async def test_tools_round_trip(tmp_path: Path) -> None:
 
         bundle = await client.call_tool("get_domain_guide", {"domain_id": "fixture-domain"})
         assert bundle.structured_content is not None
-        assert bundle.structured_content["fixes"][0]["id"] == "debugger-map"
-        assert bundle.structured_content["fixes"][0]["root_cause"]
+        assert bundle.structured_content["problems"][0]["id"] == "debugger-map"
+        assert bundle.structured_content["problems"][0]["causes"]
 
-        record = await client.call_tool("get_fix", {"note_id": "debugger-map"})
+        record = await client.call_tool("get_problem", {"note_id": "debugger-map"})
         assert record.structured_content is not None
         assert len(record.structured_content["source_pack"]) == 25
 
-        missing = await client.call_tool("get_fix", {"note_id": "missing-note"})
+        missing = await client.call_tool("get_problem", {"note_id": "missing-note"})
         assert missing.is_error is True
         detail = missing.content[0]
         assert isinstance(detail, TextContent)
@@ -106,8 +106,8 @@ async def test_streamable_http_lists_tools(tmp_path: Path) -> None:
             listed = await client.list_tools()
             names = {tool.name for tool in listed.tools}
             assert names == {
-                "search_fixes",
-                "get_fix",
+                "search_knowledge",
+                "get_problem",
                 "get_domain_guide",
                 "list_topics",
                 "list_refresh_due",

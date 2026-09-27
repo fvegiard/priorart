@@ -1,4 +1,4 @@
-"""Content model for domain guides, fix recipes, and the published search index."""
+"""Content model for domain guides, problem knowledge, and the published search index."""
 
 from datetime import date, datetime
 from enum import StrEnum
@@ -65,7 +65,7 @@ def _check_refresh(note_id: str, created: date, refreshed: date, due: date, exam
 
 class NoteKind(StrEnum):
     DOMAIN_GUIDE = "domain-guide"
-    FIX = "fix"
+    PROBLEM = "problem"
 
 
 class SourceType(StrEnum):
@@ -100,7 +100,7 @@ class Step(StrictModel):
 
 
 class Source(StrictModel):
-    """A source cited in a fix recipe. The pack copy adds relevance."""
+    """A source cited in a problem note. The pack copy adds relevance."""
 
     url: Annotated[str, Field(pattern=r"^https://\S+$", max_length=500)]
     title: Annotated[str, Field(min_length=3, max_length=200)]
@@ -184,7 +184,7 @@ class DomainGuide(StrictModel):
     summary: Annotated[str, Field(min_length=40, max_length=4000)]
     tags: TagList
     platforms: PlatformList
-    related_fixes: Annotated[list[Slug], Field(max_length=40)]
+    related_problems: Annotated[list[Slug], Field(max_length=40)]
     created: date
     last_refreshed: date
     refresh_due: date
@@ -207,22 +207,27 @@ class DomainGuide(StrictModel):
         _check_refresh(self.id, self.created, self.last_refreshed, self.refresh_due, self.example)
         _unique(self.tags, "tags")
         _unique([platform.name for platform in self.platforms], "platforms")
-        _unique(self.related_fixes, "related_fixes")
+        _unique(self.related_problems, "related_problems")
         return self
 
 
-class FixNote(StrictModel):
+class ProblemNote(StrictModel):
+    """What is known about one error or failure. Priorart records it and does not apply it."""
+
     id: Slug
-    type: Literal[NoteKind.FIX]
+    type: Literal[NoteKind.PROBLEM]
     title: Annotated[str, Field(min_length=10, max_length=160)]
-    problem_summary: Annotated[str, Field(min_length=40, max_length=2000)]
-    root_cause: Annotated[str, Field(min_length=40, max_length=4000)]
+    symptoms: Annotated[str, Field(min_length=40, max_length=2000)]
+    causes: Annotated[str, Field(min_length=40, max_length=4000)]
     tags: TagList
     platforms: PlatformList
     domains: Annotated[list[Slug], Field(min_length=1, max_length=8)]
-    recipe: Annotated[list[Step], Field(min_length=1, max_length=20)]
+    documented_solutions: Annotated[list[Step], Field(min_length=1, max_length=20)]
     verification: Annotated[list[Step], Field(min_length=1, max_length=10)]
-    rollback: Annotated[list[Step], Field(min_length=1, max_length=10)]
+    caveats: Annotated[
+        list[Annotated[str, Field(min_length=10, max_length=2000)]],
+        Field(min_length=1, max_length=12),
+    ]
     sources: Annotated[list[Source], Field(min_length=1, max_length=30)]
     created: date
     last_refreshed: date
@@ -241,20 +246,21 @@ class FixNote(StrictModel):
         return updated
 
     @model_validator(mode="after")
-    def check_fix(self) -> "FixNote":
+    def check_problem(self) -> "ProblemNote":
         _check_refresh(self.id, self.created, self.last_refreshed, self.refresh_due, self.example)
         _unique(self.tags, "tags")
         _unique([platform.name for platform in self.platforms], "platforms")
         _unique(self.domains, "domains")
+        _unique(self.caveats, "caveats")
         urls = [source.url for source in self.sources]
         if len(urls) != len(set(urls)):
             raise ValueError("cited source URLs must be unique")
-        if not any(step.code for step in self.recipe):
-            raise ValueError("at least one recipe step must include code")
+        if not any(step.code for step in self.documented_solutions):
+            raise ValueError("at least one documented solution must include the published code")
         return self
 
 
-KnowledgeNote = DomainGuide | FixNote
+KnowledgeNote = DomainGuide | ProblemNote
 
 
 class IndexedNote(StrictModel):
@@ -271,13 +277,13 @@ class IndexedNote(StrictModel):
     example: bool
     text: str
     embedding: list[float]
-    related_fixes: list[str] = Field(default_factory=list)
+    related_problems: list[str] = Field(default_factory=list)
     sources_count: int = 0
-    problem_summary: str = ""
-    root_cause: str = ""
-    recipe: list[Step] = Field(default_factory=list)
+    symptoms: str = ""
+    causes: str = ""
+    documented_solutions: list[Step] = Field(default_factory=list)
     verification: list[Step] = Field(default_factory=list)
-    rollback: list[Step] = Field(default_factory=list)
+    caveats: list[str] = Field(default_factory=list)
     domains: list[str] = Field(default_factory=list)
     sources: list[Source] = Field(default_factory=list)
 
@@ -323,13 +329,13 @@ class SearchHit(StrictModel):
     score: float
     last_refreshed: date
     refresh_due: date
-    related_fixes: list[str] = Field(default_factory=list)
+    related_problems: list[str] = Field(default_factory=list)
     sources_count: int = 0
-    problem_summary: str = ""
-    root_cause: str = ""
-    recipe: list[Step] = Field(default_factory=list)
+    symptoms: str = ""
+    causes: str = ""
+    documented_solutions: list[Step] = Field(default_factory=list)
     verification: list[Step] = Field(default_factory=list)
-    rollback: list[Step] = Field(default_factory=list)
+    caveats: list[str] = Field(default_factory=list)
     domains: list[str] = Field(default_factory=list)
     sources: list[Source] = Field(default_factory=list)
 
@@ -343,17 +349,17 @@ class SearchResponse(StrictModel):
     results: list[SearchHit]
 
 
-class FixRecord(StrictModel):
+class ProblemRecord(StrictModel):
     id: str
     title: str
-    problem_summary: str
-    root_cause: str
+    symptoms: str
+    causes: str
     tags: list[str]
     platforms: list[Platform]
     domains: list[str]
-    recipe: list[Step]
+    documented_solutions: list[Step]
     verification: list[Step]
-    rollback: list[Step]
+    caveats: list[str]
     sources: list[Source]
     source_pack: list[SourcePackEntry]
     created: date
@@ -368,9 +374,9 @@ class DomainGuideRecord(StrictModel):
     summary: str
     tags: list[str]
     platforms: list[Platform]
-    related_fixes: list[str]
-    fixes: list[FixRecord]
-    missing_fix_ids: list[str]
+    related_problems: list[str]
+    problems: list[ProblemRecord]
+    missing_problem_ids: list[str]
     sources_count: int
     source_pack: list[SourcePackEntry]
     created: date

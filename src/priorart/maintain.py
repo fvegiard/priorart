@@ -59,10 +59,10 @@ def _paths(kind: NoteKind, note_id: str) -> tuple[str, str]:
                 f"knowledge/domains/{note_id}.md",
                 f"knowledge/sources/domains/{note_id}.json",
             )
-        case NoteKind.FIX:
+        case NoteKind.PROBLEM:
             return (
-                f"knowledge/fixes/{note_id}.md",
-                f"knowledge/sources/fixes/{note_id}.json",
+                f"knowledge/problems/{note_id}.md",
+                f"knowledge/sources/problems/{note_id}.json",
             )
         case _ as other:
             assert_never(other)

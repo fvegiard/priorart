@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/fvegiard/priorart/actions/workflows/ci.yml/badge.svg)](https://github.com/fvegiard/priorart/actions/workflows/ci.yml)
 
-PriorArt is a public, semantically searchable knowledge base of domain guides and verified fix recipes for software and dev-environment problems. A research pass writes a note and a raw source pack. Coding agents then query an MCP server, read the domain guide or take the recipe, and apply a fix in one attempt.
+PriorArt is a public, semantically searchable knowledge base for any AI agent or bot. It records domain guides and problem knowledge for software and dev-environment questions. A research pass writes a note and a raw source pack. Agents query an MCP server and read the knowledge. Priorart never applies changes itself.
 
 No paid API and no repository secret is required for search, validation, or the MCP server.
 
@@ -11,10 +11,10 @@ No paid API and no repository secret is required for search, validation, or the 
 ```mermaid
 flowchart LR
   research[Research agent] --> domains[knowledge/domains]
-  research --> fixes[knowledge/fixes]
+  research --> problems[knowledge/problems]
   research --> packs[knowledge/sources]
   domains --> ci[CI: schema, links, 25 sources, privacy, gitleaks]
-  fixes --> ci
+  problems --> ci
   packs --> ci
   ci --> main[main]
   main --> indexJob[Search index workflow]
@@ -22,11 +22,11 @@ flowchart LR
   main --> pages[GitHub Pages]
   release --> mcp[MCP server]
   domains --> mcp
-  fixes --> mcp
-  debug[Debugging agent] --> mcp
+  problems --> mcp
+  agents[Any AI agent or bot] --> mcp
 ```
 
-Notes are markdown with YAML frontmatter. Domain guides (`type: domain-guide`) cover a technology or skill area and list related fix ids. Fix recipes (`type: fix`) name a root cause, a recipe, verification, a rollback, and one or more domain ids. CI checks that those links resolve in both directions. Each note has a JSON source pack. Real notes must have at least 25 references. The samples are marked `example: true` and are left out of the published index and the monthly refresh queue.
+Notes are markdown with YAML frontmatter. Domain guides (`type: domain-guide`) cover a technology or skill area and list related problem ids. Problem notes (`type: problem`) record symptoms, causes, documented solutions, verification methods, and caveats, and they name one or more domain ids. CI checks that those links resolve in both directions. Each note has a JSON source pack. Real notes must have at least 25 references. The samples are marked `example: true` and are left out of the published index and the monthly refresh queue. The server returns this knowledge. It does not edit a machine or run a solution.
 
 On every push to `main`, GitHub Actions embeds the notes with [FastEmbed](https://github.com/qdrant/fastembed) (`BAAI/bge-small-en-v1.5`, local ONNX, no API key) and publishes a hybrid index: cosine similarity fused with BM25 by reciprocal rank fusion.
 
@@ -83,7 +83,7 @@ The server loads the published index first (`PRIORART_SOURCE=auto`). Until the f
 }
 ```
 
-`PRIORART_INCLUDE_EXAMPLES=1` is only for the fictional sample. Leave it unset for real debugging.
+`PRIORART_INCLUDE_EXAMPLES=1` is only for the fictional samples. Leave it unset when reading published knowledge.
 
 Other MCP clients use the same stdio command. The process entry `priorart-mcp` is the same server with stdio as the default (`PRIORART_TRANSPORT=http` switches it).
 
@@ -121,15 +121,15 @@ Any client that speaks streamable HTTP can use that URL. Environment variables f
 
 | Tool | Purpose |
 | --- | --- |
-| `search_fixes` | `query`, `top_k`, optional `tag`, `platform`, and `note_type` (`domain-guide`, `fix`, or `all`). Fix hits include the recipe and cited sources |
-| `get_fix` | One fix recipe by id, including rollback and the full source pack |
-| `get_domain_guide` | One domain guide plus the fix recipes listed in `related_fixes` |
+| `search_knowledge` | `query`, `top_k`, optional `tag`, `platform`, and `note_type` (`domain-guide`, `problem`, or `all`). Returns knowledge. Does not apply it |
+| `get_problem` | One problem note by id: symptoms, causes, documented solutions, verification methods, caveats, and the source pack |
+| `get_domain_guide` | One domain guide plus the problem notes listed in `related_problems` |
 | `list_topics` | Tags, platforms, and note types with counts |
 | `list_refresh_due` | Real notes whose `refresh_due` is on or before a date |
 
 ## Try the sample
 
-The notes in the tree are examples, so the default index ignores them. Search both kinds with `--type domain-guide` or `--type fix`.
+The notes in the tree are examples, so the default index ignores them. Search both kinds with `--type domain-guide` or `--type problem`.
 
 ```bash
 uv run priorart search "sourceFileMap debugger" --include-examples --embedder hash --expect-id example-windows-debugger-path
@@ -147,7 +147,7 @@ uv run priorart search "sourceFileMap debugger" --include-examples --expect-id e
 
 ```
 knowledge/domains/          domain guides and _template.md
-knowledge/fixes/            fix recipes and _template.md
+knowledge/problems/         problem knowledge and _template.md
 knowledge/sources/          source packs for both kinds
 schema/                     JSON Schema generated from the pydantic models
 src/priorart/               loader, privacy gate, index, MCP server
@@ -162,7 +162,7 @@ The research workflow, including the 25-source minimum, the 92-day community rul
 Workflows cannot turn these on by themselves:
 
 - **Pages.** Settings → Pages → Build and deployment → Source: **GitHub Actions**. `.github/workflows/pages.yml` then publishes the note browser.
-- **Discussions.** Settings → General → Features → **Discussions**. The template in `.github/DISCUSSION_TEMPLATE/` applies after that. Research requests stay as issues (`.github/ISSUE_TEMPLATE/research_request.yml`). Outcome reports use `fix_outcome.yml`.
+- **Discussions.** Settings → General → Features → **Discussions**. The template in `.github/DISCUSSION_TEMPLATE/` applies after that. Research requests stay as issues (`.github/ISSUE_TEMPLATE/research_request.yml`). Reports of how published knowledge compared with a case use `knowledge_report.yml`.
 
 Releases and issue labels are created by the workflows. Labels live in `.github/labels.yml`. The monthly job `.github/workflows/refresh.yml` opens or updates one `research-bot` issue per note whose refresh is due.
 

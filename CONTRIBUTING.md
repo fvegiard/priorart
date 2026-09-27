@@ -1,6 +1,6 @@
 # Contributing
 
-Content changes follow [AGENTS.md](AGENTS.md). That file is the contract for adding or refreshing a fix note: layout, schema, the 25-source minimum, the 92-day community freshness rule, privacy, and commit messages.
+Content changes follow [AGENTS.md](AGENTS.md). That file is the contract for adding or refreshing knowledge: layout, schema, the 25-source minimum, the 92-day community freshness rule, privacy, and commit messages. Priorart records knowledge. It does not apply changes.
 
 Code changes use the same commit style. Before a pull request:
 
@@ -14,7 +14,7 @@ uv run priorart validate
 uv run priorart privacy
 ```
 
-If you change `DomainGuide`, `FixNote`, or `SourcePack`, regenerate the schemas and commit them:
+If you change `DomainGuide`, `ProblemNote`, or `SourcePack`, regenerate the schemas and commit them:
 
 ```bash
 uv run priorart export-schema

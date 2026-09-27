@@ -69,13 +69,13 @@
       "title": "Platforms",
       "type": "array"
     },
-    "related_fixes": {
+    "related_problems": {
       "items": {
         "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
         "type": "string"
       },
       "maxItems": 40,
-      "title": "Related Fixes",
+      "title": "Related Problems",
       "type": "array"
     },
     "created": {
@@ -112,7 +112,7 @@
     "summary",
     "tags",
     "platforms",
-    "related_fixes",
+    "related_problems",
     "created",
     "last_refreshed",
     "refresh_due",

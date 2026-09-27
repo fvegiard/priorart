@@ -46,9 +46,9 @@ def test_hybrid_search_ranks_the_matching_note(tmp_path: Path) -> None:
     )
     assert response.retrieval == "hybrid"
     assert response.results[0].id == "debugger-map"
-    assert response.results[0].note_type is NoteKind.FIX
-    assert response.results[0].recipe[0].code
-    assert response.results[0].rollback
+    assert response.results[0].note_type is NoteKind.PROBLEM
+    assert response.results[0].documented_solutions[0].code
+    assert response.results[0].caveats
     assert response.results[0].sources
 
 
@@ -91,11 +91,11 @@ def test_note_type_filter_keeps_one_kind(tmp_path: Path) -> None:
         "sourceFileMap",
         embedder=knowledge.embedder(),
         top_k=5,
-        note_type=NoteKind.FIX,
+        note_type=NoteKind.PROBLEM,
         origin="local",
     )
     assert fixes.results[0].id == "debugger-map"
-    assert {hit.note_type for hit in fixes.results} == {NoteKind.FIX}
+    assert {hit.note_type for hit in fixes.results} == {NoteKind.PROBLEM}
 
 
 def test_sample_is_searchable_only_when_requested() -> None:
@@ -111,7 +111,8 @@ def test_sample_is_searchable_only_when_requested() -> None:
         origin="local",
     )
     assert response.results[0].id == "example-windows-debugger-path"
-    assert "sourceFileMap" in (response.results[0].recipe[0].code or "")
+    code = response.results[0].documented_solutions[0].code or ""
+    assert "sourceFileMap" in code
     assert response.results[0].sources
 
 

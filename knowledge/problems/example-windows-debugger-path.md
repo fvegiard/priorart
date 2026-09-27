@@ -1,13 +1,12 @@
 ---
 id: example-windows-debugger-path
-type: fix
-title: Map a debugger source path without a personal profile directory
-problem_summary: >
+type: problem
+title: Debugger opens sources from another machine's absolute path
+symptoms: >
   A native debugger opens sources using absolute paths recorded on the machine
-  that built the binary. Those paths miss on another checkout, and hardcoding a
-  Windows profile directory would publish a personal username. Map the foreign
-  root onto this workspace and pass paths through environment variables.
-root_cause: >
+  that built the binary. Those paths miss on another checkout. A note that
+  hardcodes a Windows profile directory would publish a personal username.
+causes: >
   The binary stores the build machine's absolute source root. cppdbg and the
   Windows debugger then look for files at that root instead of the checkout
   that is open now. A literal profile path would also leak an account name.
@@ -22,11 +21,12 @@ platforms:
     versions: ["2"]
 domains:
   - example-windows-debugger
-recipe:
-  - name: Map the foreign source root in launch.json
+documented_solutions:
+  - name: Documented cppdbg sourceFileMap
     detail: >
-      Point cppdbg at the sources in this workspace. The placeholder on the
-      right is the workspace folder, not a user profile path.
+      Vendor and community notes describe mapping the foreign root onto the
+      open workspace. The placeholder on the right is the workspace folder,
+      not a user profile path. Priorart does not write this file.
     language: json
     code: |
       {
@@ -43,10 +43,10 @@ recipe:
           }
         ]
       }
-  - name: Set the native source path from the profile environment variable
+  - name: Documented native source path from the profile variable
     detail: >
-      When a native debugger needs a directory, derive it from USERPROFILE
-      instead of writing a username into the note.
+      When a native debugger needs a directory, published guidance derives it
+      from USERPROFILE instead of writing a username into the note.
     language: powershell
     code: |
       $env:_NT_SOURCE_PATH = Join-Path $env:USERPROFILE "src"
@@ -61,14 +61,9 @@ verification:
     language: powershell
     code: |
       Test-Path $env:_NT_SOURCE_PATH
-rollback:
-  - name: Remove the source map
-    detail: >
-      Delete the sourceFileMap entry and clear _NT_SOURCE_PATH so the debugger
-      returns to its previous lookup behavior.
-    language: powershell
-    code: |
-      Remove-Item Env:_NT_SOURCE_PATH -ErrorAction SilentlyContinue
+caveats:
+  - A trailing slash on only one side of the map makes every lookup miss.
+  - A literal profile directory in the note would publish an account name.
 sources:
   - url: https://example.com/priorart/example/official/source-file-map
     title: Example official note on debugger source maps
@@ -108,5 +103,5 @@ example: true
 
 > **Example only.** This note is fictional scaffolding so the repository has a
 > valid sample. It is excluded from the search index and from the monthly
-> refresh queue. Do not apply it as a verified fix. Every URL points at
-> example.com and is not a real citation.
+> refresh queue. It records what is known. It is not an instruction Priorart
+> runs. Every URL points at example.com and is not a real citation.

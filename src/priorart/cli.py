@@ -17,7 +17,7 @@ from priorart.maintain import (
     load_real_notes,
     plan_refresh,
 )
-from priorart.models import DomainGuide, FixNote, NoteKind, SourcePack
+from priorart.models import DomainGuide, NoteKind, ProblemNote, SourcePack
 from priorart.privacy import scan_path
 from priorart.query import search_index
 from priorart.server import serve
@@ -32,7 +32,7 @@ from priorart.validate import repo_root_from, validate_repository
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="priorart", description="PriorArt fix-note tools")
+    parser = argparse.ArgumentParser(prog="priorart", description="PriorArt knowledge-base tools")
     sub = parser.add_subparsers(dest="command", required=True)
 
     sub.add_parser("validate", help="Check note schema, source packs, and freshness rules")
@@ -44,12 +44,12 @@ def _parser() -> argparse.ArgumentParser:
     index.add_argument("--include-examples", action="store_true")
     index.add_argument("--knowledge-dir")
 
-    search = sub.add_parser("search", help="Search domain guides and fix recipes")
+    search = sub.add_parser("search", help="Search domain guides and problem knowledge")
     search.add_argument("query")
     search.add_argument("--top-k", type=int, default=5)
     search.add_argument("--tag")
     search.add_argument("--platform")
-    search.add_argument("--type", choices=("domain-guide", "fix", "all"), default="all")
+    search.add_argument("--type", choices=("domain-guide", "problem", "all"), default="all")
     search.add_argument("--source", choices=("local", "remote", "auto"), default="local")
     search.add_argument("--embedder", choices=("fastembed", "hash"), default="fastembed")
     search.add_argument("--include-examples", action="store_true")
@@ -224,7 +224,7 @@ def cmd_export_schema(output: str) -> int:
     destination.mkdir(parents=True, exist_ok=True)
     documents = {
         "domain-guide.schema.json": DomainGuide.model_json_schema(),
-        "fix.schema.json": FixNote.model_json_schema(),
+        "problem.schema.json": ProblemNote.model_json_schema(),
         "source-pack.schema.json": SourcePack.model_json_schema(),
     }
     for name, document in documents.items():

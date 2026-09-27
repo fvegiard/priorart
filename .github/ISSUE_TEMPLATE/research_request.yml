@@ -1,5 +1,5 @@
 name: Research request
-description: Ask the research bot to investigate a problem and add a fix note.
+description: Ask for knowledge about a technology area or a specific error.
 title: "research: "
 labels:
   - research-bot
@@ -7,12 +7,12 @@ body:
   - type: markdown
     attributes:
       value: |
-        Describe the failure. Do not include personal profile paths, email addresses, tokens, or internal hostnames. Use `C:\Users\<USER>\` or environment variables when a path is part of the problem.
+        Describe what an agent needs to know. Do not include personal profile paths, email addresses, tokens, or internal hostnames. Use `C:\Users\<USER>\` or environment variables when a path is part of the question. Priorart records knowledge. It does not apply changes.
   - type: textarea
     id: problem
     attributes:
-      label: Problem
-      description: What breaks, and what a successful fix would change.
+      label: What should the knowledge cover?
+      description: The technology area, or the error, symptoms, and what is already known.
     validations:
       required: true
   - type: input
@@ -25,6 +25,6 @@ body:
   - type: textarea
     id: tried
     attributes:
-      label: What you already tried
+      label: Sources or notes you already checked
     validations:
       required: false

@@ -5,7 +5,7 @@ from typing import assert_never
 
 from priorart.constants import MIN_REAL_SOURCES
 from priorart.load import LoadedNote, knowledge_dirs, load_tree, note_paths
-from priorart.models import DomainGuide, FixNote, Source
+from priorart.models import DomainGuide, ProblemNote, Source
 
 
 def repo_root_from(start: Path | None = None) -> Path:
@@ -57,7 +57,7 @@ def cross_file_errors(loaded: LoadedNote) -> list[str]:
                     f"{where}: sources_count is {note.sources_count} "
                     f"but the pack has {len(loaded.pack.references)} references"
                 )
-        case FixNote():
+        case ProblemNote():
             errors.extend(_cited_source_errors(loaded))
         case _ as other:
             assert_never(other)
@@ -66,7 +66,7 @@ def cross_file_errors(loaded: LoadedNote) -> list[str]:
 
 def _cited_source_errors(loaded: LoadedNote) -> list[str]:
     note = loaded.note
-    if not isinstance(note, FixNote):
+    if not isinstance(note, ProblemNote):
         return []
     where = loaded.path.as_posix()
     errors: list[str] = []
@@ -89,33 +89,41 @@ def _cited_source_errors(loaded: LoadedNote) -> list[str]:
 
 
 def link_errors(notes: list[LoadedNote], root: Path) -> list[str]:
-    """Domain ids on fixes, and fix ids on domain guides, must exist and agree."""
+    """Domain ids on problem notes, and problem ids on domain guides, must exist and agree."""
     domains = {item.note.id: item for item in notes if isinstance(item.note, DomainGuide)}
-    fixes = {item.note.id: item for item in notes if isinstance(item.note, FixNote)}
+    problems = {item.note.id: item for item in notes if isinstance(item.note, ProblemNote)}
     errors: list[str] = []
     for item in notes:
         where = relative(item.path, root)
         match item.note:
-            case FixNote() as fix:
-                for domain_id in fix.domains:
+            case ProblemNote() as problem:
+                for domain_id in problem.domains:
                     guide = domains.get(domain_id)
                     if guide is None:
                         errors.append(f"{where}: domains link does not resolve: {domain_id}")
                         continue
                     linked = guide.note
-                    if isinstance(linked, DomainGuide) and fix.id not in linked.related_fixes:
+                    if (
+                        isinstance(linked, DomainGuide)
+                        and problem.id not in linked.related_problems
+                    ):
                         errors.append(
-                            f"{where}: domain {domain_id} does not list this fix in related_fixes"
+                            f"{where}: domain {domain_id} does not list this problem "
+                            "in related_problems"
                         )
             case DomainGuide() as guide:
-                for fix_id in guide.related_fixes:
-                    linked = fixes.get(fix_id)
+                for problem_id in guide.related_problems:
+                    linked = problems.get(problem_id)
                     if linked is None:
-                        errors.append(f"{where}: related_fixes link does not resolve: {fix_id}")
+                        errors.append(
+                            f"{where}: related_problems link does not resolve: {problem_id}"
+                        )
                         continue
-                    fix = linked.note
-                    if isinstance(fix, FixNote) and guide.id not in fix.domains:
-                        errors.append(f"{where}: fix {fix_id} does not list this domain in domains")
+                    problem = linked.note
+                    if isinstance(problem, ProblemNote) and guide.id not in problem.domains:
+                        errors.append(
+                            f"{where}: problem {problem_id} does not list this domain in domains"
+                        )
             case _ as other:
                 assert_never(other)
     return errors

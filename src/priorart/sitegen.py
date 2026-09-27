@@ -1,4 +1,4 @@
-"""Static HTML browser for domain guides and fix recipes."""
+"""Static HTML browser for domain guides and problem knowledge."""
 
 import html
 from pathlib import Path
@@ -6,7 +6,7 @@ from typing import assert_never
 
 from priorart.constants import DEFAULT_INDEX_URL, PAGES_URL, REPO
 from priorart.load import LoadedNote, load_tree
-from priorart.models import DomainGuide, FixNote, Source, SourcePackEntry, Step
+from priorart.models import DomainGuide, ProblemNote, Source, SourcePackEntry, Step
 
 _CSS = """
 :root { color-scheme: light; }
@@ -40,6 +40,14 @@ def _steps(title: str, steps: list[Step]) -> str:
         )
     blocks.append("</ol>")
     return "\n".join(blocks)
+
+
+def _caveats(items: list[str]) -> str:
+    rows = ["<h2>Caveats</h2>", "<ul>"]
+    for item in items:
+        rows.append(f"<li>{html.escape(item)}</li>")
+    rows.append("</ul>")
+    return "\n".join(rows)
 
 
 def _source_list(sources: list[Source] | list[SourcePackEntry]) -> str:
@@ -111,32 +119,37 @@ def render_note(loaded: LoadedNote) -> str:
     match note:
         case DomainGuide() as guide:
             blob = f"https://github.com/{REPO}/blob/main/knowledge/sources/domains/{guide.id}.json"
-            fixes = ", ".join(html.escape(fix_id) for fix_id in guide.related_fixes) or "none yet"
+            problems = (
+                ", ".join(html.escape(problem_id) for problem_id in guide.related_problems)
+                or "none yet"
+            )
             body = f"""  {_meta(loaded)}
   <h2>Summary</h2>
   <p>{html.escape(guide.summary)}</p>
-  <h2>Related fixes</h2>
-  <p>{fixes}</p>
+  <h2>Related problems</h2>
+  <p>{problems}</p>
   <h2>Sources</h2>
   {_source_list(loaded.pack.references)}
   <p><a href="{html.escape(blob)}">Raw source pack</a>
   ({guide.sources_count} references)</p>
   {"".join(paragraphs)}
 """
-        case FixNote() as fix:
-            blob = f"https://github.com/{REPO}/blob/main/knowledge/sources/fixes/{fix.id}.json"
-            domains = ", ".join(html.escape(domain_id) for domain_id in fix.domains)
+        case ProblemNote() as problem:
+            blob = (
+                f"https://github.com/{REPO}/blob/main/knowledge/sources/problems/{problem.id}.json"
+            )
+            domains = ", ".join(html.escape(domain_id) for domain_id in problem.domains)
             body = f"""  {_meta(loaded)}
-  <h2>Problem</h2>
-  <p>{html.escape(fix.problem_summary)}</p>
-  <h2>Root cause</h2>
-  <p>{html.escape(fix.root_cause)}</p>
+  <h2>Symptoms</h2>
+  <p>{html.escape(problem.symptoms)}</p>
+  <h2>Causes</h2>
+  <p>{html.escape(problem.causes)}</p>
   <p class="meta">Domains: {domains}</p>
-  {_steps("Recipe", list(fix.recipe))}
-  {_steps("Verification", list(fix.verification))}
-  {_steps("Rollback", list(fix.rollback))}
+  {_steps("Documented solutions", list(problem.documented_solutions))}
+  {_steps("Verification methods", list(problem.verification))}
+  {_caveats(list(problem.caveats))}
   <h2>Sources</h2>
-  {_source_list(list(fix.sources))}
+  {_source_list(list(problem.sources))}
   <p><a href="{html.escape(blob)}">Raw source pack</a>
   ({len(loaded.pack.references)} references)</p>
   {"".join(paragraphs)}
@@ -161,15 +174,16 @@ def _group_items(group: list[LoadedNote], folder: str) -> str:
 
 def render_index(notes: list[LoadedNote]) -> str:
     domains = [item for item in notes if isinstance(item.note, DomainGuide)]
-    fixes = [item for item in notes if isinstance(item.note, FixNote)]
+    problems = [item for item in notes if isinstance(item.note, ProblemNote)]
     body = f"""  <h1>PriorArt</h1>
-  <p>Domain guides and verified fix recipes. Search them through the MCP server.</p>
+  <p>Knowledge for any AI agent or bot. Priorart records what is known.
+  It does not apply changes.</p>
   <p class="meta">Published search index:
   <a href="{html.escape(DEFAULT_INDEX_URL)}">{html.escape(DEFAULT_INDEX_URL)}</a></p>
   <h2>Domain guides</h2>
   {_group_items(domains, "domains")}
-  <h2>Fix recipes</h2>
-  {_group_items(fixes, "fixes")}
+  <h2>Problem knowledge</h2>
+  {_group_items(problems, "problems")}
   <p class="meta">Example notes are marked on their pages. Ignored by search.</p>
   <p class="meta"><a href="{html.escape(PAGES_URL)}">Pages</a>
   · <a href="https://github.com/{REPO}">Repository</a></p>
@@ -184,7 +198,7 @@ def build_site(root: Path, output: Path) -> int:
     output.mkdir(parents=True, exist_ok=True)
     (output / "style.css").write_text(_CSS, encoding="utf-8")
     (output / "index.html").write_text(render_index(loaded), encoding="utf-8")
-    for folder, model in (("domains", DomainGuide), ("fixes", FixNote)):
+    for folder, model in (("domains", DomainGuide), ("problems", ProblemNote)):
         destination = output / folder
         destination.mkdir(exist_ok=True)
         for item in loaded:

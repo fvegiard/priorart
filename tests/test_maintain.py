@@ -15,7 +15,7 @@ def _note(note_id: str, refreshed: str, due: str) -> TrackedNote:
         last_refreshed=date.fromisoformat(refreshed),
         refresh_due=date.fromisoformat(due),
         example=False,
-        kind=NoteKind.FIX,
+        kind=NoteKind.PROBLEM,
     )
 
 
@@ -24,7 +24,7 @@ def test_plan_creates_then_skips_an_unchanged_issue() -> None:
     created = plan_refresh([note], [], date(2026, 10, 1))
     assert [item.action for item in created] == ["create"]
     assert f"priorart-note-id: {note.id}" in created[0].body
-    assert "knowledge/fixes/debugger-map.md" in created[0].body
+    assert "knowledge/problems/debugger-map.md" in created[0].body
     existing = OpenIssue(number=7, title=created[0].title, body=created[0].body)
     assert plan_refresh([note], [existing], date(2026, 10, 1)) == []
     edited = OpenIssue(number=7, title="old", body=created[0].body)

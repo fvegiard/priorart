@@ -3,7 +3,7 @@
 import re
 from typing import assert_never
 
-from priorart.models import DomainGuide, FixNote, KnowledgeNote, SourcePack
+from priorart.models import DomainGuide, KnowledgeNote, ProblemNote, SourcePack
 
 _STOP = frozenset(
     {
@@ -47,17 +47,18 @@ def document_text(note: KnowledgeNote, pack: SourcePack) -> str:
     match note:
         case DomainGuide() as guide:
             parts.append(guide.summary)
-            parts.extend(guide.related_fixes)
-        case FixNote() as fix:
-            parts.append(fix.problem_summary)
-            parts.append(fix.root_cause)
-            parts.extend(fix.domains)
-            for step in [*fix.recipe, *fix.verification, *fix.rollback]:
+            parts.extend(guide.related_problems)
+        case ProblemNote() as problem:
+            parts.append(problem.symptoms)
+            parts.append(problem.causes)
+            parts.extend(problem.domains)
+            parts.extend(problem.caveats)
+            for step in [*problem.documented_solutions, *problem.verification]:
                 parts.append(step.name)
                 parts.append(step.detail)
                 if step.code:
                     parts.append(step.code)
-            for source in fix.sources:
+            for source in problem.sources:
                 parts.append(source.title)
         case _ as other:
             assert_never(other)

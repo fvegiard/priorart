@@ -1,4 +1,4 @@
-"""MCP server for the fix-note knowledge base."""
+"""MCP server for the Priorart knowledge base. Tools return knowledge and apply nothing."""
 
 import logging
 import os
@@ -15,9 +15,9 @@ from priorart.models import (
     DomainGuideRecord,
     DueList,
     DueNote,
-    FixRecord,
     IndexedNote,
     NoteKind,
+    ProblemRecord,
     SearchResponse,
     TopicCount,
     TopicList,
@@ -60,21 +60,21 @@ def _parse_note_type(value: str | None) -> NoteKind | None:
     try:
         return NoteKind(cleaned)
     except ValueError as exc:
-        raise ToolError("note_type must be domain-guide, fix, or all") from exc
+        raise ToolError("note_type must be domain-guide, problem, or all") from exc
 
 
-def _fix_record(note: IndexedNote) -> FixRecord:
-    return FixRecord(
+def _problem_record(note: IndexedNote) -> ProblemRecord:
+    return ProblemRecord(
         id=note.id,
         title=note.title,
-        problem_summary=note.problem_summary,
-        root_cause=note.root_cause,
+        symptoms=note.symptoms,
+        causes=note.causes,
         tags=list(note.tags),
         platforms=list(note.platforms),
         domains=list(note.domains),
-        recipe=list(note.recipe),
+        documented_solutions=list(note.documented_solutions),
         verification=list(note.verification),
-        rollback=list(note.rollback),
+        caveats=list(note.caveats),
         sources=list(note.sources),
         source_pack=list(note.source_pack),
         created=note.created,
@@ -100,9 +100,9 @@ def create_server(knowledge: Knowledge | None = None) -> MCPServer:
         return current
 
     @mcp.tool(annotations=_READ_ONLY)
-    def search_fixes(
+    def search_knowledge(
         query: Annotated[
-            str, Field(min_length=1, description="What is broken, in plain language.")
+            str, Field(min_length=1, description="What you want to know, in plain language.")
         ],
         top_k: Annotated[int, Field(ge=1, le=20, description="How many notes to return.")] = 5,
         tag: Annotated[str | None, Field(description="Exact tag filter, such as debugger.")] = None,
@@ -111,14 +111,15 @@ def create_server(knowledge: Knowledge | None = None) -> MCPServer:
         ] = None,
         note_type: Annotated[
             str | None,
-            Field(description="domain-guide, fix, or all. Omit to search both."),
+            Field(description="domain-guide, problem, or all. Omit to search both."),
         ] = None,
     ) -> SearchResponse:
-        """Search domain guides and fix recipes.
+        """Search domain guides and problem knowledge. Does not apply any change.
 
-        Filter with note_type. Fix hits include the recipe, verification, rollback,
-        and cited sources. Domain hits include the summary and related fix ids.
-        Example notes are omitted unless PRIORART_INCLUDE_EXAMPLES=1.
+        Filter with note_type. Problem hits include symptoms, causes, documented
+        solutions, verification methods, caveats, and cited sources. Domain hits
+        include the summary and related problem ids. Example notes are omitted
+        unless PRIORART_INCLUDE_EXAMPLES=1.
         """
         library = get_knowledge()
         return search_index(
@@ -133,18 +134,22 @@ def create_server(knowledge: Knowledge | None = None) -> MCPServer:
         )
 
     @mcp.tool(annotations=_READ_ONLY)
-    def get_fix(
+    def get_problem(
         note_id: Annotated[
-            str, Field(min_length=1, description="Note id, such as example-windows-debugger-path.")
+            str,
+            Field(
+                min_length=1,
+                description="Problem id, such as example-windows-debugger-path.",
+            ),
         ],
-    ) -> FixRecord:
-        """Fetch one fix recipe, including rollback and the full source pack."""
+    ) -> ProblemRecord:
+        """Return what is known about one problem, including sources. Does not apply it."""
         library = get_knowledge()
         for note in library.index.notes:
             if note.id == note_id:
-                if note.note_type is not NoteKind.FIX:
+                if note.note_type is not NoteKind.PROBLEM:
                     raise ToolError(f"{note_id} is a domain guide; call get_domain_guide")
-                return _fix_record(note)
+                return _problem_record(note)
         raise ToolError(f"unknown note: {note_id}")
 
     @mcp.tool(annotations=_READ_ONLY)
@@ -154,31 +159,31 @@ def create_server(knowledge: Knowledge | None = None) -> MCPServer:
             Field(min_length=1, description="Domain guide id, such as example-windows-debugger."),
         ],
     ) -> DomainGuideRecord:
-        """Return one domain guide together with the fix recipes it lists."""
+        """Return one domain guide together with the problem notes it lists."""
         library = get_knowledge()
         guide = next((note for note in library.index.notes if note.id == domain_id), None)
         if guide is None:
             raise ToolError(f"unknown domain guide: {domain_id}")
         if guide.note_type is not NoteKind.DOMAIN_GUIDE:
-            raise ToolError(f"{domain_id} is a fix; call get_fix")
+            raise ToolError(f"{domain_id} is a problem note; call get_problem")
         by_id = {note.id: note for note in library.index.notes}
-        fixes: list[FixRecord] = []
+        problems: list[ProblemRecord] = []
         missing: list[str] = []
-        for fix_id in guide.related_fixes:
-            linked = by_id.get(fix_id)
-            if linked is None or linked.note_type is not NoteKind.FIX:
-                missing.append(fix_id)
+        for problem_id in guide.related_problems:
+            linked = by_id.get(problem_id)
+            if linked is None or linked.note_type is not NoteKind.PROBLEM:
+                missing.append(problem_id)
                 continue
-            fixes.append(_fix_record(linked))
+            problems.append(_problem_record(linked))
         return DomainGuideRecord(
             id=guide.id,
             title=guide.title,
             summary=guide.summary,
             tags=list(guide.tags),
             platforms=list(guide.platforms),
-            related_fixes=list(guide.related_fixes),
-            fixes=fixes,
-            missing_fix_ids=missing,
+            related_problems=list(guide.related_problems),
+            problems=problems,
+            missing_problem_ids=missing,
             sources_count=guide.sources_count,
             source_pack=list(guide.source_pack),
             created=guide.created,

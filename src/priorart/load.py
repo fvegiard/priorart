@@ -1,4 +1,4 @@
-"""Read domain guides, fix recipes, and their source packs."""
+"""Read domain guides, problem notes, and their source packs."""
 
 import json
 from dataclasses import dataclass
@@ -8,7 +8,7 @@ from typing import assert_never
 import yaml
 from pydantic import ValidationError
 
-from priorart.models import DomainGuide, FixNote, KnowledgeNote, NoteKind, SourcePack
+from priorart.models import DomainGuide, KnowledgeNote, NoteKind, ProblemNote, SourcePack
 
 
 @dataclass(frozen=True)
@@ -43,7 +43,7 @@ def knowledge_dirs(root: Path) -> dict[NoteKind, tuple[Path, Path]]:
     knowledge = root / "knowledge"
     return {
         NoteKind.DOMAIN_GUIDE: (knowledge / "domains", knowledge / "sources" / "domains"),
-        NoteKind.FIX: (knowledge / "fixes", knowledge / "sources" / "fixes"),
+        NoteKind.PROBLEM: (knowledge / "problems", knowledge / "sources" / "problems"),
     }
 
 
@@ -51,9 +51,9 @@ def parse_note(raw: dict[str, object]) -> KnowledgeNote:
     kind = raw.get("type")
     if kind == NoteKind.DOMAIN_GUIDE:
         return DomainGuide.model_validate(raw)
-    if kind == NoteKind.FIX:
-        return FixNote.model_validate(raw)
-    raise ValueError("type must be domain-guide or fix")
+    if kind == NoteKind.PROBLEM:
+        return ProblemNote.model_validate(raw)
+    raise ValueError("type must be domain-guide or problem")
 
 
 def load_note(path: Path, sources_dir: Path) -> LoadedNote:
@@ -110,8 +110,8 @@ def _pack_hint(kind: NoteKind, stem: str) -> str:
     match kind:
         case NoteKind.DOMAIN_GUIDE:
             return f"knowledge/sources/domains/{stem}.json"
-        case NoteKind.FIX:
-            return f"knowledge/sources/fixes/{stem}.json"
+        case NoteKind.PROBLEM:
+            return f"knowledge/sources/problems/{stem}.json"
         case _ as other:
             assert_never(other)
 

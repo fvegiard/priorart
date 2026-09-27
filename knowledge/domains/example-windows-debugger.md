@@ -15,7 +15,7 @@ platforms:
     versions: ["10", "11"]
   - name: wsl
     versions: ["2"]
-related_fixes:
+related_problems:
   - example-windows-debugger-path
 sources_count: 25
 created: 2026-09-27
@@ -42,7 +42,7 @@ A map or a source path tells it to look in the open workspace instead. Profile
 directories stay behind environment variables so a public note never names an
 account.
 
-## Related fixes
+## Related problems
 
-`example-windows-debugger-path` is the sample recipe for applying that map
-without writing a personal profile path into the repository.
+`example-windows-debugger-path` is the sample problem note for this area. It
+records documented source-map guidance and the caveat about personal paths.

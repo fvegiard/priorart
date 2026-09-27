@@ -20,7 +20,7 @@ from priorart.constants import (
 )
 from priorart.embed import Embedder, embedder_by_kind, embedder_for
 from priorart.load import LoadedNote, load_tree
-from priorart.models import DomainGuide, FixNote, IndexedNote, IndexManifest, SearchIndex
+from priorart.models import DomainGuide, IndexedNote, IndexManifest, ProblemNote, SearchIndex
 from priorart.textutil import document_text
 from priorart.validate import repo_root_from, validate_repository
 
@@ -89,20 +89,20 @@ def _index_note(item: LoadedNote, text: str, vector: list[float]) -> IndexedNote
         case DomainGuide() as guide:
             return IndexedNote(
                 summary=guide.summary,
-                related_fixes=list(guide.related_fixes),
+                related_problems=list(guide.related_problems),
                 sources_count=guide.sources_count,
                 **shared,
             )
-        case FixNote() as fix:
+        case ProblemNote() as problem:
             return IndexedNote(
-                summary=fix.problem_summary,
-                problem_summary=fix.problem_summary,
-                root_cause=fix.root_cause,
-                recipe=list(fix.recipe),
-                verification=list(fix.verification),
-                rollback=list(fix.rollback),
-                domains=list(fix.domains),
-                sources=list(fix.sources),
+                summary=problem.symptoms,
+                symptoms=problem.symptoms,
+                causes=problem.causes,
+                documented_solutions=list(problem.documented_solutions),
+                verification=list(problem.verification),
+                caveats=list(problem.caveats),
+                domains=list(problem.domains),
+                sources=list(problem.sources),
                 **shared,
             )
         case _ as other:

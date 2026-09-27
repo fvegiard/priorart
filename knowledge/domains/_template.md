@@ -11,7 +11,7 @@ tags:
 platforms:
   - name: windows
     versions: ["11"]
-related_fixes: []
+related_problems: []
 sources_count: 25
 created: 2026-09-27
 last_refreshed: 2026-09-27
@@ -24,5 +24,5 @@ Copy this file to `knowledge/domains/<id>.md` and the pack template to
 templates and are not validated or indexed.
 
 A real domain guide needs at least 25 source-pack references, and `sources_count`
-must equal that pack length. List fix ids in `related_fixes` only after those
-fixes exist and name this domain in their `domains` field.
+must equal that pack length. List problem ids in `related_problems` only after
+those notes exist and name this domain in their `domains` field.

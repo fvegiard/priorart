@@ -1,18 +1,18 @@
 # Research agent workflow
 
-PriorArt has two note types. Domain guides are deep references for a technology or skill area. Fix recipes are specific problems with a root cause, a recipe, verification, and a rollback. A research agent adds or refreshes a note only by the steps below. A debugging agent reads notes through the MCP server and does not edit them.
+PriorArt is a knowledge base for any AI agent or bot. It records what is known and never applies changes itself. Domain guides are deep references for a technology or skill area. Problem notes are what is known about one error or failure: symptoms, causes, documented solutions from vendors and the community, verification methods, and caveats, each tied to sources. A research agent adds or refreshes a note only by the steps below. A consuming agent reads notes through the MCP server and decides for itself what, if anything, to do.
 
 ## File layout
 
 ```
 knowledge/domains/<id>.md                 domain guide (type: domain-guide)
-knowledge/fixes/<id>.md                   fix recipe (type: fix)
+knowledge/problems/<id>.md                problem knowledge (type: problem)
 knowledge/sources/domains/<id>.json       source pack for that domain guide
-knowledge/sources/fixes/<id>.json         source pack for that fix
+knowledge/sources/problems/<id>.json      source pack for that problem note
 knowledge/domains/_template.md            copy this; leading-underscore files are ignored
-knowledge/fixes/_template.md
+knowledge/problems/_template.md
 knowledge/sources/domains/_template.json
-knowledge/sources/fixes/_template.json
+knowledge/sources/problems/_template.json
 ```
 
 `<id>` is lowercase kebab-case and matches the filename, the frontmatter `id`, and the pack `note_id`. Ids are unique across both folders. Example notes use an `example-` prefix and `example: true`. Real notes do not.
@@ -29,30 +29,30 @@ knowledge/sources/fixes/_template.json
 | `summary` | yes | What the area covers |
 | `tags` | yes | Kebab-case tags |
 | `platforms` | yes | `{name, versions}` entries. `name` is a slug such as `windows` or `wsl` |
-| `related_fixes` | yes | Fix ids that belong to this area. May be empty |
+| `related_problems` | yes | Problem ids that belong to this area. May be empty |
 | `created` | yes | ISO date the guide was first written |
 | `last_refreshed` | yes | ISO date of the last research pass |
 | `refresh_due` | yes | 1 to 35 days after `last_refreshed` (about 30) |
 | `sources_count` | yes | Must equal the number of references in the source pack |
 | `example` | no | Default `false`. Must be `true` exactly when the id starts with `example-` |
 
-## Fix recipes
+## Problem knowledge
 
-`type` is `fix`. Frontmatter fields:
+`type` is `problem`. Frontmatter fields:
 
 | Field | Required | Meaning |
 | --- | --- | --- |
 | `id` | yes | Stable kebab-case id |
-| `type` | yes | `fix` |
+| `type` | yes | `problem` |
 | `title` | yes | One line |
-| `problem_summary` | yes | What breaks, without a personal path |
-| `root_cause` | yes | Why it breaks |
+| `symptoms` | yes | What is observed, without a personal path |
+| `causes` | yes | What sources say causes it |
 | `tags` | yes | Kebab-case tags |
 | `platforms` | yes | `{name, versions}` entries |
 | `domains` | yes | One or more domain-guide ids |
-| `recipe` | yes | Ordered steps. At least one step includes `code` and `language` |
-| `verification` | yes | Steps that fail before the fix and pass after it |
-| `rollback` | yes | Steps that undo the recipe |
+| `documented_solutions` | yes | Solutions vendors or the community documented. At least one step includes the published `code` and `language`. Priorart does not run it |
+| `verification` | yes | Methods the sources use to check the condition |
+| `caveats` | yes | Limits, side effects, or cases where the documented solution does not hold |
 | `sources` | yes | Cited sources. Each URL must match a pack reference exactly |
 | `created` | yes | ISO date the note was first written |
 | `last_refreshed` | yes | ISO date of the last research pass |
@@ -61,7 +61,7 @@ knowledge/sources/fixes/_template.json
 
 ## Links
 
-CI rejects a fix whose `domains` entry is not a domain guide, and a domain guide whose `related_fixes` entry is not a fix. The link is bidirectional: a fix names the domain, and that domain lists the fix.
+CI rejects a problem note whose `domains` entry is not a domain guide, and a domain guide whose `related_problems` entry is not a problem note. The link is bidirectional: a problem note names the domain, and that domain lists the problem.
 
 ## Source packs
 
@@ -79,7 +79,7 @@ Each reference has `url` (https), `title`, `type`, `published`, `retrieved`, and
 
 Source `type` is one of `official-docs`, `community`, `github-issue`, `github-discussion`, `github-repo`, `other`.
 
-JSON Schema is in `schema/domain-guide.schema.json`, `schema/fix.schema.json`, and `schema/source-pack.schema.json`.
+JSON Schema is in `schema/domain-guide.schema.json`, `schema/problem.schema.json`, and `schema/source-pack.schema.json`.
 
 ## Source minimums and freshness
 
@@ -87,7 +87,7 @@ JSON Schema is in `schema/domain-guide.schema.json`, `schema/fix.schema.json`, a
 - Community posts (`type: community`, including Microsoft and Windows developer community threads) must have `published` **no more than 92 days** before `retrieved`. That is the 3-month rule. Drop or replace anything older.
 - Official docs, GitHub issues, and GitHub discussions may be older. Record `published` and `retrieved` for every pack reference.
 - GitHub repos (`type: github-repo`) should be ones that already solve the problem (bots, agent skills, MCP servers, scripts) and that were active recently. Put that last-activity date in `published`.
-- Every URL cited in a fix's `sources` list is copied into the pack with the same title, type, and dates.
+- Every URL cited in a problem note's `sources` list is copied into the pack with the same title, type, and dates.
 
 ## Privacy
 
@@ -102,11 +102,11 @@ The repository is public. Do not commit:
 
 ## Add or refresh a note
 
-1. Search first: `uv run priorart search "<problem>" --source auto`. Use `--type domain-guide` or `--type fix` to limit the kind. On a refresh, edit the existing id. Do not create a second note for the same subject.
+1. Search first: `uv run priorart search "<problem>" --source auto`. Use `--type domain-guide` or `--type problem` to limit the kind. On a refresh, edit the existing id. Do not create a second note for the same subject.
 2. Read the matching `_template.md` and `_template.json` if you are adding a note.
-3. Collect 25 or more sources: official docs, community posts no older than 3 months, GitHub issues and discussions, and recently active repositories that already cover the area or the fix.
-4. Write the note and the pack. A fix recipe must be specific enough to apply in one attempt, including the code, verification, and rollback. A domain guide explains the area and lists the related fix ids.
-5. Point every fix at one or more domain guides, and list that fix on each of those guides.
+3. Collect 25 or more sources: official docs, community posts no older than 3 months, GitHub issues and discussions, and recently active repositories that already cover the area or the problem.
+4. Write the note and the pack. A problem note records symptoms, causes, the solutions vendors and the community documented, verification methods, and caveats. A domain guide explains the area and lists the related problem ids. Do not write steps as if Priorart will run them.
+5. Point every problem note at one or more domain guides, and list that problem on each of those guides.
 6. Set `created` once. On every refresh set `last_refreshed` to today and `refresh_due` about 30 days later (never more than 35). Set `sources_count` on a domain guide to the pack length.
 7. Example notes include an `Example only` banner in the body. Real notes leave `example` false.
 8. Run `uv run priorart validate` and `uv run priorart privacy`.

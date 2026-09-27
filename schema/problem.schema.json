@@ -27,7 +27,7 @@
     },
     "Source": {
       "additionalProperties": false,
-      "description": "A source cited in a fix recipe. The pack copy adds relevance.",
+      "description": "A source cited in a problem note. The pack copy adds relevance.",
       "properties": {
         "url": {
           "maxLength": 500,
@@ -137,6 +137,7 @@
     }
   },
   "additionalProperties": false,
+  "description": "What is known about one error or failure. Priorart records it and does not apply it.",
   "properties": {
     "id": {
       "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
@@ -144,7 +145,7 @@
       "type": "string"
     },
     "type": {
-      "const": "fix",
+      "const": "problem",
       "title": "Type",
       "type": "string"
     },
@@ -154,16 +155,16 @@
       "title": "Title",
       "type": "string"
     },
-    "problem_summary": {
+    "symptoms": {
       "maxLength": 2000,
       "minLength": 40,
-      "title": "Problem Summary",
+      "title": "Symptoms",
       "type": "string"
     },
-    "root_cause": {
+    "causes": {
       "maxLength": 4000,
       "minLength": 40,
-      "title": "Root Cause",
+      "title": "Causes",
       "type": "string"
     },
     "tags": {
@@ -195,13 +196,13 @@
       "title": "Domains",
       "type": "array"
     },
-    "recipe": {
+    "documented_solutions": {
       "items": {
         "$ref": "#/$defs/Step"
       },
       "maxItems": 20,
       "minItems": 1,
-      "title": "Recipe",
+      "title": "Documented Solutions",
       "type": "array"
     },
     "verification": {
@@ -213,13 +214,15 @@
       "title": "Verification",
       "type": "array"
     },
-    "rollback": {
+    "caveats": {
       "items": {
-        "$ref": "#/$defs/Step"
+        "maxLength": 2000,
+        "minLength": 10,
+        "type": "string"
       },
-      "maxItems": 10,
+      "maxItems": 12,
       "minItems": 1,
-      "title": "Rollback",
+      "title": "Caveats",
       "type": "array"
     },
     "sources": {
@@ -256,19 +259,19 @@
     "id",
     "type",
     "title",
-    "problem_summary",
-    "root_cause",
+    "symptoms",
+    "causes",
     "tags",
     "platforms",
     "domains",
-    "recipe",
+    "documented_solutions",
     "verification",
-    "rollback",
+    "caveats",
     "sources",
     "created",
     "last_refreshed",
     "refresh_due"
   ],
-  "title": "FixNote",
+  "title": "ProblemNote",
   "type": "object"
 }

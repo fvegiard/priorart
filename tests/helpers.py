@@ -21,27 +21,27 @@ def reference(
     }
 
 
-def _related_fixes(path: Path) -> list[str]:
+def _related_problems(path: Path) -> list[str]:
     if not path.is_file():
         return []
     text = path.read_text(encoding="utf-8")
-    match = re.search(r"related_fixes:\n(?P<body>(?:  - .+\n)*)", text)
+    match = re.search(r"related_problems:\n(?P<body>(?:  - .+\n)*)", text)
     if match is None:
         return []
     return re.findall(r"^  - (\S+)$", match.group("body"), flags=re.MULTILINE)
 
 
 def write_domain(
-    root: Path, *, domain_id: str, example: bool, fix_ids: list[str], count: int
+    root: Path, *, domain_id: str, example: bool, problem_ids: list[str], count: int
 ) -> None:
     refs = [reference(index) for index in range(count)]
-    # Domain packs use a distinct URL space so they do not collide with a fix pack in reviews.
+    # Domain packs use a distinct URL space so they do not collide with a problem pack.
     for index, item in enumerate(refs):
         item["url"] = f"https://example.com/fixture/domain/{index}"
         item["title"] = f"Fixture domain source {index} for the temporary guide"
     body = "Example only. Fixture domain.\n" if example else "Fixture domain.\n"
-    related = "\n".join(f"  - {fix_id}" for fix_id in fix_ids)
-    related_block = f"related_fixes:\n{related}\n" if related else "related_fixes: []\n"
+    related = "\n".join(f"  - {problem_id}" for problem_id in problem_ids)
+    related_block = f"related_problems:\n{related}\n" if related else "related_problems: []\n"
     note = f"""---
 id: {domain_id}
 type: domain-guide
@@ -92,10 +92,10 @@ def write_note(
     domain_id = "example-fixture-domain" if example else "fixture-domain"
     note = f"""---
 id: {note_id}
-type: fix
+type: problem
 title: {title}
-problem_summary: {problem}
-root_cause: The fixture fails because the temporary setup does not match the expected state.
+symptoms: {problem}
+causes: The fixture fails because the temporary setup does not match the expected state.
 tags:
   - {tag}
 platforms:
@@ -103,9 +103,9 @@ platforms:
     versions: ["11"]
 domains:
   - {domain_id}
-recipe:
-  - name: Apply the fixture
-    detail: Run the fixture command in a clean shell.
+documented_solutions:
+  - name: Documented fixture command
+    detail: Sources describe running the fixture command in a clean shell.
     language: powershell
     code: |
       {code}
@@ -115,12 +115,8 @@ verification:
     language: powershell
     code: |
       Write-Output ok
-rollback:
-  - name: Undo the fixture
-    detail: Remove the fixture change so the shell returns to its previous state.
-    language: powershell
-    code: |
-      Write-Output rolled-back
+caveats:
+  - The documented command is knowledge only and is not run by priorart.
 sources:
   - url: {cited["url"]}
     title: {cited["title"]}
@@ -135,15 +131,15 @@ example: {"true" if example else "false"}
 
 {body}
 """
-    fixes = root / "knowledge" / "fixes"
-    sources = root / "knowledge" / "sources" / "fixes"
-    fixes.mkdir(parents=True, exist_ok=True)
+    problems = root / "knowledge" / "problems"
+    sources = root / "knowledge" / "sources" / "problems"
+    problems.mkdir(parents=True, exist_ok=True)
     sources.mkdir(parents=True, exist_ok=True)
-    (fixes / f"{note_id}.md").write_text(note, encoding="utf-8")
+    (problems / f"{note_id}.md").write_text(note, encoding="utf-8")
     pack = {"note_id": note_id, "collected_at": "2026-09-27", "references": refs}
     (sources / f"{note_id}.json").write_text(json.dumps(pack, indent=2) + "\n", encoding="utf-8")
     domain_path = root / "knowledge" / "domains" / f"{domain_id}.md"
-    related = _related_fixes(domain_path)
+    related = _related_problems(domain_path)
     if note_id not in related:
         related.append(note_id)
     domain_count = source_count if example else max(source_count, 25)
@@ -151,6 +147,6 @@ example: {"true" if example else "false"}
         root,
         domain_id=domain_id,
         example=example,
-        fix_ids=related,
+        problem_ids=related,
         count=domain_count,
     )
