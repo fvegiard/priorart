@@ -1,0 +1,277 @@
+{
+  "$defs": {
+    "Platform": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Platform slug.",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "versions": {
+          "items": {
+            "maxLength": 40,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Versions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "Platform",
+      "type": "object"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "description": "A source cited in a problem note. The pack copy adds relevance.",
+      "properties": {
+        "url": {
+          "maxLength": 500,
+          "pattern": "^https://\\S+$",
+          "title": "Url",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 3,
+          "title": "Title",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/SourceType"
+        },
+        "published": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Publication or last-activity date.",
+          "title": "Published"
+        },
+        "retrieved": {
+          "format": "date",
+          "title": "Retrieved",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url",
+        "title",
+        "type",
+        "retrieved"
+      ],
+      "title": "Source",
+      "type": "object"
+    },
+    "SourceType": {
+      "enum": [
+        "official-docs",
+        "community",
+        "github-issue",
+        "github-discussion",
+        "github-repo",
+        "other"
+      ],
+      "title": "SourceType",
+      "type": "string"
+    },
+    "Step": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 120,
+          "minLength": 3,
+          "title": "Name",
+          "type": "string"
+        },
+        "detail": {
+          "maxLength": 2000,
+          "minLength": 10,
+          "title": "Detail",
+          "type": "string"
+        },
+        "language": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9#+.-]{1,32}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Language"
+        },
+        "code": {
+          "anyOf": [
+            {
+              "maxLength": 8000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Code"
+        }
+      },
+      "required": [
+        "name",
+        "detail"
+      ],
+      "title": "Step",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "What is known about one error or failure. Priorart records it and does not apply it.",
+  "properties": {
+    "id": {
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "title": "Id",
+      "type": "string"
+    },
+    "type": {
+      "const": "problem",
+      "title": "Type",
+      "type": "string"
+    },
+    "title": {
+      "maxLength": 160,
+      "minLength": 10,
+      "title": "Title",
+      "type": "string"
+    },
+    "symptoms": {
+      "maxLength": 2000,
+      "minLength": 40,
+      "title": "Symptoms",
+      "type": "string"
+    },
+    "causes": {
+      "maxLength": 4000,
+      "minLength": 40,
+      "title": "Causes",
+      "type": "string"
+    },
+    "tags": {
+      "items": {
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+        "type": "string"
+      },
+      "maxItems": 12,
+      "minItems": 1,
+      "title": "Tags",
+      "type": "array"
+    },
+    "platforms": {
+      "items": {
+        "$ref": "#/$defs/Platform"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Platforms",
+      "type": "array"
+    },
+    "domains": {
+      "items": {
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+        "type": "string"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Domains",
+      "type": "array"
+    },
+    "documented_solutions": {
+      "items": {
+        "$ref": "#/$defs/Step"
+      },
+      "maxItems": 20,
+      "minItems": 1,
+      "title": "Documented Solutions",
+      "type": "array"
+    },
+    "verification": {
+      "items": {
+        "$ref": "#/$defs/Step"
+      },
+      "maxItems": 10,
+      "minItems": 1,
+      "title": "Verification",
+      "type": "array"
+    },
+    "caveats": {
+      "items": {
+        "maxLength": 2000,
+        "minLength": 10,
+        "type": "string"
+      },
+      "maxItems": 12,
+      "minItems": 1,
+      "title": "Caveats",
+      "type": "array"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/Source"
+      },
+      "maxItems": 30,
+      "minItems": 1,
+      "title": "Sources",
+      "type": "array"
+    },
+    "created": {
+      "format": "date",
+      "title": "Created",
+      "type": "string"
+    },
+    "last_refreshed": {
+      "format": "date",
+      "title": "Last Refreshed",
+      "type": "string"
+    },
+    "refresh_due": {
+      "format": "date",
+      "title": "Refresh Due",
+      "type": "string"
+    },
+    "example": {
+      "default": false,
+      "title": "Example",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "id",
+    "type",
+    "title",
+    "symptoms",
+    "causes",
+    "tags",
+    "platforms",
+    "domains",
+    "documented_solutions",
+    "verification",
+    "caveats",
+    "sources",
+    "created",
+    "last_refreshed",
+    "refresh_due"
+  ],
+  "title": "ProblemNote",
+  "type": "object"
+}

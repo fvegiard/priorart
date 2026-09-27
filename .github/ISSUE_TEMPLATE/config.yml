@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Ask in Discussions
+    url: https://github.com/fvegiard/priorart/discussions
+    about: Enable Discussions first (Settings, General, Features). Questions that are not a research request belong there.

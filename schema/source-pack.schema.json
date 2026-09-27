@@ -1,0 +1,91 @@
+{
+  "$defs": {
+    "SourcePackEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "maxLength": 500,
+          "pattern": "^https://\\S+$",
+          "title": "Url",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 3,
+          "title": "Title",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/SourceType"
+        },
+        "published": {
+          "format": "date",
+          "title": "Published",
+          "type": "string"
+        },
+        "retrieved": {
+          "format": "date",
+          "title": "Retrieved",
+          "type": "string"
+        },
+        "relevance": {
+          "maxLength": 1000,
+          "minLength": 10,
+          "title": "Relevance",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url",
+        "title",
+        "type",
+        "published",
+        "retrieved",
+        "relevance"
+      ],
+      "title": "SourcePackEntry",
+      "type": "object"
+    },
+    "SourceType": {
+      "enum": [
+        "official-docs",
+        "community",
+        "github-issue",
+        "github-discussion",
+        "github-repo",
+        "other"
+      ],
+      "title": "SourceType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "note_id": {
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "title": "Note Id",
+      "type": "string"
+    },
+    "collected_at": {
+      "format": "date",
+      "title": "Collected At",
+      "type": "string"
+    },
+    "references": {
+      "items": {
+        "$ref": "#/$defs/SourcePackEntry"
+      },
+      "maxItems": 80,
+      "minItems": 1,
+      "title": "References",
+      "type": "array"
+    }
+  },
+  "required": [
+    "note_id",
+    "collected_at",
+    "references"
+  ],
+  "title": "SourcePack",
+  "type": "object"
+}

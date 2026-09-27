@@ -1,0 +1,123 @@
+{
+  "$defs": {
+    "Platform": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Platform slug.",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "versions": {
+          "items": {
+            "maxLength": 40,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Versions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "Platform",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "title": "Id",
+      "type": "string"
+    },
+    "type": {
+      "const": "domain-guide",
+      "title": "Type",
+      "type": "string"
+    },
+    "title": {
+      "maxLength": 160,
+      "minLength": 10,
+      "title": "Title",
+      "type": "string"
+    },
+    "summary": {
+      "maxLength": 4000,
+      "minLength": 40,
+      "title": "Summary",
+      "type": "string"
+    },
+    "tags": {
+      "items": {
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+        "type": "string"
+      },
+      "maxItems": 12,
+      "minItems": 1,
+      "title": "Tags",
+      "type": "array"
+    },
+    "platforms": {
+      "items": {
+        "$ref": "#/$defs/Platform"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Platforms",
+      "type": "array"
+    },
+    "related_problems": {
+      "items": {
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+        "type": "string"
+      },
+      "maxItems": 40,
+      "title": "Related Problems",
+      "type": "array"
+    },
+    "created": {
+      "format": "date",
+      "title": "Created",
+      "type": "string"
+    },
+    "last_refreshed": {
+      "format": "date",
+      "title": "Last Refreshed",
+      "type": "string"
+    },
+    "refresh_due": {
+      "format": "date",
+      "title": "Refresh Due",
+      "type": "string"
+    },
+    "sources_count": {
+      "maximum": 80,
+      "minimum": 1,
+      "title": "Sources Count",
+      "type": "integer"
+    },
+    "example": {
+      "default": false,
+      "title": "Example",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "id",
+    "type",
+    "title",
+    "summary",
+    "tags",
+    "platforms",
+    "related_problems",
+    "created",
+    "last_refreshed",
+    "refresh_due",
+    "sources_count"
+  ],
+  "title": "DomainGuide",
+  "type": "object"
+}

@@ -1,0 +1,206 @@
+{
+  "note_id": "example-windows-debugger",
+  "collected_at": "2026-09-27",
+  "references": [
+    {
+      "url": "https://example.com/priorart/example/domain/debugger/1",
+      "title": "Example domain reference 1: debugger source lookup",
+      "type": "official-docs",
+      "published": "2026-03-01",
+      "retrieved": "2026-09-27",
+      "relevance": "Scaffolding reference 1 for the sample domain guide. Topic: debugger source lookup. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/domain/debugger/2",
+      "title": "Example domain reference 2: cppdbg source file maps",
+      "type": "community",
+      "published": "2026-08-15",
+      "retrieved": "2026-09-27",
+      "relevance": "Scaffolding reference 2 for the sample domain guide. Topic: cppdbg source file maps. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/domain/debugger/3",
+      "title": "Example domain reference 3: native _NT_SOURCE_PATH",
+      "type": "github-issue",
+      "published": "2026-06-01",
+      "retrieved": "2026-09-27",
+      "relevance": "Scaffolding reference 3 for the sample domain guide. Topic: native _NT_SOURCE_PATH. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/domain/debugger/4",
+      "title": "Example domain reference 4: workspace-relative roots",
+      "type": "github-discussion",
+      "published": "2026-07-01",
+      "retrieved": "2026-09-27",
+      "relevance": "Scaffolding reference 4 for the sample domain guide. Topic: workspace-relative roots. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/domain/debugger/5",
+      "title": "Example domain reference 5: symbol source paths",
+      "type": "github-repo",
+      "published": "2026-09-01",
+      "retrieved": "2026-09-27",
+      "relevance": "Scaffolding reference 5 for the sample domain guide. Topic: symbol source paths. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/domain/debugger/6",
+      "title": "Example domain reference 6: WSL path translation",
+      "type": "official-docs",
+      "published": "2026-03-01",
+      "retrieved": "2026-09-27",
+      "relevance": "Scaffolding reference 6 for the sample domain guide. Topic: WSL path translation. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/domain/debugger/7",
+      "title": "Example domain reference 7: build-machine absolute paths",
+      "type": "community",
+      "published": "2026-08-15",
+      "retrieved": "2026-09-27",
+      "relevance": "Scaffolding reference 7 for the sample domain guide. Topic: build-machine absolute paths. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/domain/debugger/8",
+      "title": "Example domain reference 8: header search versus source files",
+      "type": "github-issue",
+      "published": "2026-06-01",
+      "retrieved": "2026-09-27",
+      "relevance": "Scaffolding reference 8 for the sample domain guide. Topic: header search versus source files. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/domain/debugger/9",
+      "title": "Example domain reference 9: trailing slash on a mapped root",
+      "type": "github-discussion",
+      "published": "2026-07-01",
+      "retrieved": "2026-09-27",
+      "relevance": "Scaffolding reference 9 for the sample domain guide. Topic: trailing slash on a mapped root. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/domain/debugger/10",
+      "title": "Example domain reference 10: stale paths compiled into a binary",
+      "type": "github-repo",
+      "published": "2026-09-01",
+      "retrieved": "2026-09-27",
+      "relevance": "Scaffolding reference 10 for the sample domain guide. Topic: stale paths compiled into a binary. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/domain/debugger/11",
+      "title": "Example domain reference 11: debugger source lookup",
+      "type": "official-docs",
+      "published": "2026-03-01",
+      "retrieved": "2026-09-27",
+      "relevance": "Scaffolding reference 11 for the sample domain guide. Topic: debugger source lookup. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/domain/debugger/12",
+      "title": "Example domain reference 12: cppdbg source file maps",
+      "type": "community",
+      "published": "2026-08-15",
+      "retrieved": "2026-09-27",
+      "relevance": "Scaffolding reference 12 for the sample domain guide. Topic: cppdbg source file maps. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/domain/debugger/13",
+      "title": "Example domain reference 13: native _NT_SOURCE_PATH",
+      "type": "github-issue",
+      "published": "2026-06-01",
+      "retrieved": "2026-09-27",
+      "relevance": "Scaffolding reference 13 for the sample domain guide. Topic: native _NT_SOURCE_PATH. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/domain/debugger/14",
+      "title": "Example domain reference 14: workspace-relative roots",
+      "type": "github-discussion",
+      "published": "2026-07-01",
+      "retrieved": "2026-09-27",
+      "relevance": "Scaffolding reference 14 for the sample domain guide. Topic: workspace-relative roots. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/domain/debugger/15",
+      "title": "Example domain reference 15: symbol source paths",
+      "type": "github-repo",
+      "published": "2026-09-01",
+      "retrieved": "2026-09-27",
+      "relevance": "Scaffolding reference 15 for the sample domain guide. Topic: symbol source paths. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/domain/debugger/16",
+      "title": "Example domain reference 16: WSL path translation",
+      "type": "official-docs",
+      "published": "2026-03-01",
+      "retrieved": "2026-09-27",
+      "relevance": "Scaffolding reference 16 for the sample domain guide. Topic: WSL path translation. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/domain/debugger/17",
+      "title": "Example domain reference 17: build-machine absolute paths",
+      "type": "community",
+      "published": "2026-08-15",
+      "retrieved": "2026-09-27",
+      "relevance": "Scaffolding reference 17 for the sample domain guide. Topic: build-machine absolute paths. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/domain/debugger/18",
+      "title": "Example domain reference 18: header search versus source files",
+      "type": "github-issue",
+      "published": "2026-06-01",
+      "retrieved": "2026-09-27",
+      "relevance": "Scaffolding reference 18 for the sample domain guide. Topic: header search versus source files. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/domain/debugger/19",
+      "title": "Example domain reference 19: trailing slash on a mapped root",
+      "type": "github-discussion",
+      "published": "2026-07-01",
+      "retrieved": "2026-09-27",
+      "relevance": "Scaffolding reference 19 for the sample domain guide. Topic: trailing slash on a mapped root. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/domain/debugger/20",
+      "title": "Example domain reference 20: stale paths compiled into a binary",
+      "type": "github-repo",
+      "published": "2026-09-01",
+      "retrieved": "2026-09-27",
+      "relevance": "Scaffolding reference 20 for the sample domain guide. Topic: stale paths compiled into a binary. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/domain/debugger/21",
+      "title": "Example domain reference 21: debugger source lookup",
+      "type": "official-docs",
+      "published": "2026-03-01",
+      "retrieved": "2026-09-27",
+      "relevance": "Scaffolding reference 21 for the sample domain guide. Topic: debugger source lookup. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/domain/debugger/22",
+      "title": "Example domain reference 22: cppdbg source file maps",
+      "type": "community",
+      "published": "2026-08-15",
+      "retrieved": "2026-09-27",
+      "relevance": "Scaffolding reference 22 for the sample domain guide. Topic: cppdbg source file maps. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/domain/debugger/23",
+      "title": "Example domain reference 23: native _NT_SOURCE_PATH",
+      "type": "github-issue",
+      "published": "2026-06-01",
+      "retrieved": "2026-09-27",
+      "relevance": "Scaffolding reference 23 for the sample domain guide. Topic: native _NT_SOURCE_PATH. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/domain/debugger/24",
+      "title": "Example domain reference 24: workspace-relative roots",
+      "type": "github-discussion",
+      "published": "2026-07-01",
+      "retrieved": "2026-09-27",
+      "relevance": "Scaffolding reference 24 for the sample domain guide. Topic: workspace-relative roots. Not a real citation."
+    },
+    {
+      "url": "https://example.com/priorart/example/domain/debugger/25",
+      "title": "Example domain reference 25: symbol source paths",
+      "type": "github-repo",
+      "published": "2026-09-01",
+      "retrieved": "2026-09-27",
+      "relevance": "Scaffolding reference 25 for the sample domain guide. Topic: symbol source paths. Not a real citation."
+    }
+  ]
+}

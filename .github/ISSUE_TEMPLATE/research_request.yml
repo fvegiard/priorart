@@ -1,0 +1,30 @@
+name: Research request
+description: Ask for knowledge about a technology area or a specific error.
+title: "research: "
+labels:
+  - research-bot
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe what an agent needs to know. Do not include personal profile paths, email addresses, tokens, or internal hostnames. Use `C:\Users\<USER>\` or environment variables when a path is part of the question. Priorart records knowledge. It does not apply changes.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What should the knowledge cover?
+      description: The technology area, or the error, symptoms, and what is already known.
+    validations:
+      required: true
+  - type: input
+    id: platforms
+    attributes:
+      label: Platforms and versions
+      placeholder: windows 11, WSL 2
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: Sources or notes you already checked
+    validations:
+      required: false

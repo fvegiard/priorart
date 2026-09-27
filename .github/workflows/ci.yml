@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          version: "0.12.19"
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --frozen --all-groups
+      - run: uv run ruff check
+      - run: uv run ruff format --check
+      - run: uv run pyright
+      - run: uv run pytest
+      - run: uv run priorart validate
+      - run: uv run priorart privacy
+
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install gitleaks
+        run: |
+          set -euo pipefail
+          version=8.30.1
+          cd /tmp
+          curl -fsSL -o checksums.txt "https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_checksums.txt"
+          curl -fsSL -o "gitleaks_${version}_linux_x64.tar.gz" "https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_linux_x64.tar.gz"
+          sha256sum -c --ignore-missing checksums.txt
+          tar -xzf "gitleaks_${version}_linux_x64.tar.gz" gitleaks
+          sudo install gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+      - name: Scan the repository
+        run: gitleaks dir . --config .gitleaks.toml --redact --no-banner
+      - name: Custom rules catch a Windows profile path
+        run: |
+          set -euo pipefail
+          tmp="$(python3 - << 'PY'
+          import tempfile
+          from pathlib import Path
+          directory = Path(tempfile.mkdtemp())
+          account = "ali" + "ce"
+          (directory / "leak.txt").write_text(
+              "C:\\Users\\" + account + "\\" + "src" + "\n",
+              encoding="utf-8",
+          )
+          print(directory)
+          PY
+          )"
+          if gitleaks dir "$tmp" --config .gitleaks.toml --no-banner --redact; then
+            echo "gitleaks missed a Windows profile path"
+            exit 1
+          fi
+      - name: Built-in profile folders are allowed
+        run: |
+          set -euo pipefail
+          tmp="$(python3 - << 'PY'
+          import tempfile
+          from pathlib import Path
+          directory = Path(tempfile.mkdtemp())
+          (directory / "ok.txt").write_text(
+              "C:\\Users\\" + "Public" + "\\" + "src" + "\n",
+              encoding="utf-8",
+          )
+          print(directory)
+          PY
+          )"
+          gitleaks dir "$tmp" --config .gitleaks.toml --no-banner --redact

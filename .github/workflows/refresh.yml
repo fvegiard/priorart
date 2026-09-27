@@ -1,0 +1,37 @@
+name: Refresh notes
+
+on:
+  schedule:
+    - cron: "0 7 1 * *"
+  workflow_dispatch:
+  pull_request:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          version: "0.12.19"
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: Ensure research labels
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: uv run priorart sync-labels --apply
+      - name: Open or update one issue per due note
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            uv run priorart refresh-issues
+          else
+            uv run priorart refresh-issues --apply
+          fi

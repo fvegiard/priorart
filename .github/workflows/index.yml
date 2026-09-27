@@ -1,0 +1,95 @@
+name: Search index
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: index-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          version: "0.12.19"
+          python-version: "3.12"
+          enable-cache: true
+      - uses: actions/cache@v6
+        with:
+          path: .fastembed_cache
+          key: fastembed-bge-small-en-v1.5
+      - name: Install
+        run: uv sync --frozen
+        env:
+          FASTEMBED_CACHE_PATH: ${{ github.workspace }}/.fastembed_cache
+      - name: Build the published index
+        run: uv run priorart index --output dist/priorart-index.json --embedder fastembed
+        env:
+          FASTEMBED_CACHE_PATH: ${{ github.workspace }}/.fastembed_cache
+      - name: Search the example note with the same model
+        run: >
+          uv run priorart search "sourceFileMap debugger"
+          --include-examples
+          --embedder fastembed
+          --expect-id example-windows-debugger-path
+        env:
+          FASTEMBED_CACHE_PATH: ${{ github.workspace }}/.fastembed_cache
+      - uses: actions/upload-artifact@v7
+        with:
+          name: priorart-index
+          path: |
+            dist/priorart-index.json
+            dist/priorart-index-manifest.json
+
+  publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: priorart-index
+          path: dist
+      - name: Publish versioned and latest index releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="index-${GITHUB_SHA}"
+          notes="Immutable search index for ${GITHUB_SHA}. The moving prerelease index-latest always carries the newest priorart-index.json."
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" \
+              dist/priorart-index.json \
+              dist/priorart-index-manifest.json \
+              --target "$GITHUB_SHA" \
+              --title "Search index ${GITHUB_SHA:0:7}" \
+              --notes "$notes" \
+              --prerelease \
+              --latest=false
+          fi
+          if gh release view index-latest >/dev/null 2>&1; then
+            gh release upload index-latest \
+              dist/priorart-index.json \
+              dist/priorart-index-manifest.json \
+              --clobber
+          else
+            gh release create index-latest \
+              dist/priorart-index.json \
+              dist/priorart-index-manifest.json \
+              --target "$GITHUB_SHA" \
+              --title "Search index (latest)" \
+              --notes "Moving prerelease. Fetch priorart-index.json from this tag. Immutable snapshots are index-<git sha>." \
+              --prerelease \
+              --latest=false
+          fi
